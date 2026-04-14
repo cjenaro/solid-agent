@@ -7,6 +7,9 @@ require 'active_record'
 require 'active_support'
 require 'active_support/test_case'
 require 'rails'
+require 'action_controller/railtie'
+require 'action_view/railtie'
+require 'active_job/railtie'
 
 ActiveRecord::Base.establish_connection(
   adapter: 'sqlite3',
@@ -107,13 +110,24 @@ module SolidAgent
   class Error < StandardError; end unless defined?(SolidAgent::Error)
 end
 
-
 require_relative '../lib/solid_agent/orchestration'
 require_relative '../lib/solid_agent/orchestration/error_propagation'
 require_relative '../lib/solid_agent/orchestration/delegate_tool'
 require_relative '../lib/solid_agent/orchestration/agent_tool'
 require_relative '../lib/solid_agent/orchestration/parallel_executor'
 require_relative '../lib/solid_agent/orchestration/dsl'
+
+require_relative '../app/controllers/solid_agent/application_controller'
+require_relative '../app/controllers/solid_agent/dashboard_controller'
+require_relative '../app/controllers/solid_agent/traces_controller'
+require_relative '../app/controllers/solid_agent/spans_controller'
+require_relative '../app/controllers/solid_agent/conversations_controller'
+require_relative '../app/controllers/solid_agent/agents_controller'
+require_relative '../app/controllers/solid_agent/tools_controller'
+require_relative '../app/controllers/solid_agent/mcp_controller'
+
+require_relative '../app/jobs/solid_agent/application_job'
+require_relative '../app/jobs/solid_agent/trace_retention_job'
 
 class TestEmbedder < SolidAgent::Embedder::Base
   def embed(text)

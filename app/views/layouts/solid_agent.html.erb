@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>SolidAgent</title>
+  <%= csrf_meta_tags %>
+  <%= csp_meta_tag %>
+  <% if defined?(ViteRuby) %>
+    <%= vite_client_tag %>
+    <%= vite_javascript_tag "solid_agent" %>
+  <% else %>
+    <script defer src="https://unpkg.com/@inertiajs/inertia@latest"></script>
+  <% end %>
+</head>
+<body>
+  <%= yield %>
+  <%= inertia_shared_data %>
+</body>
+</html>

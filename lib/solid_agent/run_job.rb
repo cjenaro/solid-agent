@@ -48,13 +48,18 @@ module SolidAgent
     def resolve_provider(agent_class)
       provider_name = agent_class.agent_provider
       config = SolidAgent.configuration.providers[provider_name] || {}
-      provider_class = "SolidAgent::Provider::#{provider_name.to_s.camelize}".constantize
+      provider_map = { openai: 'OpenAi', anthropic: 'Anthropic', google: 'Google', ollama: 'Ollama',
+                       openai_compatible: 'OpenAiCompatible' }
+      provider_class_name = provider_map[provider_name] || provider_name.to_s.camelize
+      provider_class = "SolidAgent::Provider::#{provider_class_name}".constantize
       provider_class.new(**config.transform_keys(&:to_sym))
     end
 
     def resolve_memory(agent_class)
       config = agent_class.agent_memory_config
-      "SolidAgent::Memory::#{config[:strategy].to_s.camelize}".constantize.new(**config.except(:strategy).transform_keys(&:to_sym))
+      memory_map = { sliding_window: 'SlidingWindow', full_history: 'FullHistory', compaction: 'Compaction' }
+      memory_class_name = memory_map[config[:strategy]] || config[:strategy].to_s.camelize
+      "SolidAgent::Memory::#{memory_class_name}".constantize.new(**config.except(:strategy).transform_keys(&:to_sym))
     end
 
     def resolve_execution_engine(agent_class)
