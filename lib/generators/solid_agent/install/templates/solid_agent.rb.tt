@@ -1,0 +1,8 @@
+SolidAgent.configure do |config|
+  config.default_provider = :openai
+  config.default_model = SolidAgent::Models::OpenAi::GPT_4O
+
+  config.providers.openai = {
+    api_key: ENV["OPENAI_API_KEY"]
+  }
+end
