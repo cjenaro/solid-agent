@@ -1,0 +1,77 @@
+module SolidAgent
+  module Orchestration
+    class AgentTool
+      attr_reader :name, :agent_class, :description
+
+      def initialize(name, agent_class, description:)
+        @name = name.to_s
+        @agent_class = agent_class
+        @description = description
+      end
+
+      def delegate?
+        false
+      end
+
+      def to_tool_schema
+        {
+          name: @name,
+          description: @description,
+          inputSchema: {
+            type: "object",
+            properties: {
+              input: {
+                type: "string",
+                description: "The input for the agent"
+              }
+            },
+            required: ["input"]
+          }
+        }
+      end
+
+      def execute(arguments, context: {})
+        trace = context[:trace]
+        conversation = context[:conversation]
+        input_text = arguments["input"] || arguments[:input]
+        return @agent_class.perform_now(input_text, conversation: conversation).to_s unless trace
+
+        span = nil
+
+        begin
+          span = SolidAgent::Span.create!(
+            trace: trace,
+            span_type: :tool_execution,
+            name: @name,
+            input: input_text,
+            status: "running",
+            started_at: Time.current,
+            metadata: {
+              agent_class: @agent_class.name,
+              tool_type: :agent_tool
+            }
+          )
+
+          result = @agent_class.perform_now(input_text, conversation: conversation)
+
+          span.update!(
+            output: result.to_s,
+            status: "completed",
+            completed_at: Time.current
+          )
+
+          result.to_s
+        rescue => e
+          if span
+            span.update!(
+              output: e.message,
+              status: "error",
+              completed_at: Time.current
+            )
+          end
+          raise
+        end
+      end
+    end
+  end
+end

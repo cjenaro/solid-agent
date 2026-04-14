@@ -10,7 +10,8 @@ require 'rails'
 
 ActiveRecord::Base.establish_connection(
   adapter: 'sqlite3',
-  database: ':memory:'
+  database: 'file:memdb?mode=memory&cache=shared',
+  pool: 5
 )
 
 ActiveSupport::TestCase.test_order = :random
@@ -101,6 +102,18 @@ require_relative '../lib/solid_agent/vector_store/sqlite_vec_adapter'
 require_relative '../lib/solid_agent/embedder/base'
 
 require_relative '../lib/solid_agent/observational_memory'
+
+module SolidAgent
+  class Error < StandardError; end unless defined?(SolidAgent::Error)
+end
+
+
+require_relative '../lib/solid_agent/orchestration'
+require_relative '../lib/solid_agent/orchestration/error_propagation'
+require_relative '../lib/solid_agent/orchestration/delegate_tool'
+require_relative '../lib/solid_agent/orchestration/agent_tool'
+require_relative '../lib/solid_agent/orchestration/parallel_executor'
+require_relative '../lib/solid_agent/orchestration/dsl'
 
 class TestEmbedder < SolidAgent::Embedder::Base
   def embed(text)
