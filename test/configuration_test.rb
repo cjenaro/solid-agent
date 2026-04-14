@@ -1,5 +1,7 @@
 require 'test_helper'
 require 'solid_agent/configuration'
+require 'solid_agent/model'
+require 'solid_agent/models/open_ai'
 
 class ConfigurationTest < ActiveSupport::TestCase
   def setup
@@ -11,7 +13,7 @@ class ConfigurationTest < ActiveSupport::TestCase
   end
 
   test 'has default model' do
-    assert_nil @config.default_model
+    assert_equal SolidAgent::Models::OpenAi::GPT_4O, @config.default_model
   end
 
   test 'dashboard is enabled by default' do

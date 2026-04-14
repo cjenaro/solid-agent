@@ -7,7 +7,7 @@ module SolidAgent
 
     def initialize
       @default_provider = :openai
-      @default_model = nil
+      @default_model = Models::OpenAi::GPT_4O
       @dashboard_enabled = true
       @dashboard_route_prefix = 'solid_agent'
       @vector_store = :sqlite_vec
