@@ -37,3 +37,8 @@ end
 require 'solid_agent/provider/errors'
 require 'solid_agent/provider/base'
 require 'solid_agent/provider/registry'
+require 'solid_agent/provider/openai'
+require 'solid_agent/provider/anthropic'
+require 'solid_agent/provider/google'
+require 'solid_agent/provider/ollama'
+require 'solid_agent/provider/openai_compatible'
