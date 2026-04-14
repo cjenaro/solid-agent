@@ -34,6 +34,16 @@ module SolidAgent
   end
 end
 
+require 'solid_agent/tool/schema'
+require 'solid_agent/tool/base'
+require 'solid_agent/tool/inline_tool'
+require 'solid_agent/tool/registry'
+require 'solid_agent/tool/execution_engine'
+require 'solid_agent/tool/mcp/transport/base'
+require 'solid_agent/tool/mcp/transport/stdio'
+require 'solid_agent/tool/mcp/mcp_tool'
+require 'solid_agent/tool/mcp/client'
+
 require 'solid_agent/provider/errors'
 require 'solid_agent/provider/base'
 require 'solid_agent/provider/registry'

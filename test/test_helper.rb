@@ -86,3 +86,75 @@ require_relative '../app/models/solid_agent/trace'
 require_relative '../app/models/solid_agent/span'
 require_relative '../app/models/solid_agent/message'
 require_relative '../app/models/solid_agent/memory_entry'
+
+require_relative '../lib/solid_agent/memory/base'
+require_relative '../lib/solid_agent/memory/sliding_window'
+require_relative '../lib/solid_agent/memory/full_history'
+require_relative '../lib/solid_agent/memory/compaction'
+require_relative '../lib/solid_agent/memory/chain'
+require_relative '../lib/solid_agent/memory/registry'
+require_relative '../lib/solid_agent/memory/chain_builder'
+
+require_relative '../lib/solid_agent/vector_store/base'
+require_relative '../lib/solid_agent/vector_store/sqlite_vec_adapter'
+
+require_relative '../lib/solid_agent/embedder/base'
+
+require_relative '../lib/solid_agent/observational_memory'
+
+class TestEmbedder < SolidAgent::Embedder::Base
+  def embed(text)
+    Array.new(8) { |i| (text.hash.abs % 1000 + i) / 1000.0 }
+  end
+end
+
+class TestVectorStore < SolidAgent::VectorStore::Base
+  attr_reader :store
+
+  def initialize
+    @store = {}
+  end
+
+  def upsert(id:, embedding:, metadata: {})
+    @store[id] = { embedding: embedding, metadata: metadata }
+  end
+
+  def query(embedding:, limit: 10, threshold: 0.5)
+    results = @store.map do |id, data|
+      score = cosine_similarity(embedding, data[:embedding])
+      { id: id, score: score }
+    end
+    results.select { |r| r[:score] >= threshold }
+           .sort_by { |r| -r[:score] }
+           .first(limit)
+  end
+
+  def delete(id:)
+    @store.delete(id)
+  end
+
+  private
+
+  def cosine_similarity(a, b)
+    dot = a.zip(b).sum { |x, y| x * y }
+    mag_a = Math.sqrt(a.sum { |x| x**2 })
+    mag_b = Math.sqrt(b.sum { |x| x**2 })
+    return 0.0 if mag_a.zero? || mag_b.zero?
+
+    dot / (mag_a * mag_b)
+  end
+end
+
+module MemoryTestHelper
+  def build_messages(count, role: 'user', token_count: 10)
+    count.times.map do |i|
+      SolidAgent::Message.new(
+        role: role,
+        content: "Message #{i + 1}",
+        token_count: token_count
+      )
+    end
+  end
+end
+
+ActiveSupport::TestCase.include(MemoryTestHelper)
