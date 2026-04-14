@@ -1,4 +1,5 @@
 require 'solid_agent/engine'
+require 'solid_agent/configuration'
 
 module SolidAgent
   class Error < StandardError; end
