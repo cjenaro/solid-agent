@@ -30,6 +30,6 @@ class MemoryEntryTest < ActiveSupport::TestCase
                                     content: 'a')
     SolidAgent::MemoryEntry.create!(conversation: @conversation, agent_class: 'TestAgent', entry_type: :fact,
                                     content: 'b')
-    assert_equal 1, SolidAgent::MemoryEntry.observations.count
+    assert_equal 1, SolidAgent::MemoryEntry.observations.where(conversation: @conversation).count
   end
 end
