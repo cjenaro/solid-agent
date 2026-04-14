@@ -29,6 +29,8 @@ module SolidAgent
         end
       end
 
+      attr_reader :registry
+
       def initialize(registry:, concurrency: 1, timeout: 30, approval_required: [])
         @registry = registry
         @concurrency = concurrency
