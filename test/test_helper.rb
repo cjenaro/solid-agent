@@ -39,8 +39,16 @@ ActiveRecord::Schema.define do
     t.json :metadata, default: {}
     t.timestamps
   end
+
+  create_table :solid_agent_spans, force: true do |t|
+    t.references :trace, null: false, foreign_key: { to_table: :solid_agent_traces }
+    t.string :name
+    t.string :span_type
+    t.timestamps
+  end
 end
 
 require_relative '../app/models/solid_agent/application_record'
 require_relative '../app/models/solid_agent/conversation'
 require_relative '../app/models/solid_agent/trace'
+require_relative '../app/models/solid_agent/span'
