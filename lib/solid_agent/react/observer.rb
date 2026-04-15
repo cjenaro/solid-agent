@@ -16,7 +16,8 @@ module SolidAgent
       end
 
       def token_budget_exceeded?
-        total = (@trace.usage['input_tokens'] || 0) + (@trace.usage['output_tokens'] || 0)
+        usage = @trace.usage || {}
+        total = (usage['input_tokens'] || 0) + (usage['output_tokens'] || 0)
         total >= @max_tokens_per_run
       end
 

@@ -27,7 +27,7 @@ class MemoryBaseTest < ActiveSupport::TestCase
 
   test 'build_system_message creates system Message' do
     msg = @base.send(:build_system_message, 'Be helpful')
-    assert_instance_of SolidAgent::Message, msg
+    assert_instance_of SolidAgent::Types::Message, msg
     assert_equal 'system', msg.role
     assert_equal 'Be helpful', msg.content
   end

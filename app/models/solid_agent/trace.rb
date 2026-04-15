@@ -11,6 +11,12 @@ module SolidAgent
 
     validates :status, inclusion: { in: STATUSES }
 
+    after_initialize :set_defaults
+
+    def usage
+      self[:usage] || {}
+    end
+
     def start!
       update!(status: 'running', started_at: Time.current)
     end
@@ -39,6 +45,12 @@ module SolidAgent
 
     def total_tokens
       (usage['input_tokens'] || 0) + (usage['output_tokens'] || 0)
+    end
+
+    private
+
+    def set_defaults
+      self.usage ||= {}
     end
   end
 end

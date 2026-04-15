@@ -1,0 +1,22 @@
+<h1>Span #<%= @span.id %></h1>
+
+<div class="detail">
+  <dl>
+    <dt>Type</dt>
+    <dd><%= @span.span_type %></dd>
+    <dt>Name</dt>
+    <dd><%= @span.name %></dd>
+    <dt>Status</dt>
+    <dd><span class="badge badge-<%= @span.status %>"><%= @span.status %></span></dd>
+    <dt>Tokens</dt>
+    <dd><%= @span.tokens_in %> in / <%= @span.tokens_out %> out</dd>
+    <% if @span.input.present? %>
+      <dt>Input</dt>
+      <dd><pre><%= @span.input %></pre></dd>
+    <% end %>
+    <% if @span.output.present? %>
+      <dt>Output</dt>
+      <dd><pre><%= @span.output %></pre></dd>
+    <% end %>
+  </dl>
+</div>

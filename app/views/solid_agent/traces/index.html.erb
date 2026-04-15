@@ -1,0 +1,29 @@
+<h1>Traces</h1>
+
+<table>
+  <thead>
+    <tr>
+      <th>ID</th>
+      <th>Agent</th>
+      <th>Status</th>
+      <th>Tokens</th>
+      <th>Iterations</th>
+      <th>Created</th>
+    </tr>
+  </thead>
+  <tbody>
+    <% @traces.each do |trace| %>
+      <tr>
+        <td><%= link_to trace.id, solid_agent.trace_path(trace) %></td>
+        <td><%= trace.agent_class %></td>
+        <td><span class="badge badge-<%= trace.status %>"><%= trace.status %></span></td>
+        <td><%= trace.total_tokens %></td>
+        <td><%= trace.iteration_count %></td>
+        <td><%= trace.created_at.strftime("%Y-%m-%d %H:%M") %></td>
+      </tr>
+    <% end %>
+  </tbody>
+</table>
+<% if @traces.empty? %>
+  <div class="empty">No traces found.</div>
+<% end %>

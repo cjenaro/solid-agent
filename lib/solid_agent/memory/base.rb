@@ -23,7 +23,7 @@ module SolidAgent
       private
 
       def build_system_message(content)
-        SolidAgent::Message.new(role: 'system', content: content)
+        SolidAgent::Types::Message.new(role: 'system', content: content, tool_calls: nil, tool_call_id: nil)
       end
 
       def total_token_count(messages)

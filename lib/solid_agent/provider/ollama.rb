@@ -11,7 +11,7 @@ module SolidAgent
         @base_url = base_url.chomp('/')
       end
 
-      def build_request(messages:, tools:, stream:, model:, options: {})
+      def build_request(messages:, tools:, stream:, model:, max_tokens: nil, options: {})
         body = {
           model: model.to_s,
           messages: messages.map { |m| serialize_message(m) },

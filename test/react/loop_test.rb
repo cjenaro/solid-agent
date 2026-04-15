@@ -199,7 +199,7 @@ class ReactLoopTest < ActiveSupport::TestCase
     loop_instance.run([SolidAgent::Types::Message.new(role: 'user', content: 'Hi')])
     @trace.reload
     assert @trace.spans.length >= 1
-    think_span = @trace.spans.find { |s| s.span_type == 'think' }
+    think_span = @trace.spans.find { |s| s.span_type == 'llm' }
     assert think_span
     assert_equal 10, think_span.tokens_in
   end

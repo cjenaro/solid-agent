@@ -1,0 +1,22 @@
+<h1>Tools</h1>
+
+<% if @tools.any? %>
+  <table>
+    <thead>
+      <tr><th>Tool</th><th>Total Calls</th><th>Avg Duration (s)</th><th>Errors</th><th>Last Used</th></tr>
+    </thead>
+    <tbody>
+      <% @tools.each do |tool| %>
+        <tr>
+          <td><%= tool.name %></td>
+          <td><%= tool.total_calls %></td>
+          <td><%= tool.avg_duration.round(2) %></td>
+          <td><%= tool.error_count %></td>
+          <td><%= tool.last_used&.strftime("%Y-%m-%d %H:%M") || "Never" %></td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+<% else %>
+  <div class="empty">No tool executions recorded yet.</div>
+<% end %>

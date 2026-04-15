@@ -1,0 +1,21 @@
+<h1>Agents</h1>
+
+<% if @agents.any? %>
+  <table>
+    <thead>
+      <tr><th>Agent</th><th>Traces</th><th>Total Tokens</th><th>Last Run</th></tr>
+    </thead>
+    <tbody>
+      <% @agents.each do |agent| %>
+        <tr>
+          <td><%= agent.name %></td>
+          <td><%= agent.total_traces %></td>
+          <td><%= number_with_delimiter(agent.total_tokens) %></td>
+          <td><%= agent.last_run&.strftime("%Y-%m-%d %H:%M") || "Never" %></td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+<% else %>
+  <div class="empty">No agents have been run yet.</div>
+<% end %>

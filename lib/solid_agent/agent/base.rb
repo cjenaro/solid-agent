@@ -52,6 +52,16 @@ module SolidAgent
         input: input,
         conversation_id: conversation.id
       )
+    rescue StandardError => e
+      trace.update!(status: 'failed', error: e.message, completed_at: Time.current) if trace&.status != 'failed'
+      Agent::Result.new(
+        trace_id: trace&.id,
+        output: nil,
+        usage: Types::Usage.new(input_tokens: 0, output_tokens: 0),
+        iterations: trace&.iteration_count || 0,
+        status: :failed,
+        error: e.message
+      )
     end
   end
 end

@@ -1,0 +1,27 @@
+<h1>Conversations</h1>
+
+<table>
+  <thead>
+    <tr>
+      <th>ID</th>
+      <th>Agent</th>
+      <th>Traces</th>
+      <th>Created</th>
+      <th>Updated</th>
+    </tr>
+  </thead>
+  <tbody>
+    <% @conversations.each do |conv| %>
+      <tr>
+        <td><%= link_to conv.id, solid_agent.conversation_path(conv) %></td>
+        <td><%= conv.agent_class %></td>
+        <td><%= conv.traces.count %></td>
+        <td><%= conv.created_at.strftime("%Y-%m-%d %H:%M") %></td>
+        <td><%= conv.updated_at.strftime("%Y-%m-%d %H:%M") %></td>
+      </tr>
+    <% end %>
+  </tbody>
+</table>
+<% if @conversations.empty? %>
+  <div class="empty">No conversations yet.</div>
+<% end %>

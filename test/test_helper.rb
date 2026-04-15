@@ -110,6 +110,12 @@ module SolidAgent
   class Error < StandardError; end unless defined?(SolidAgent::Error)
 end
 
+require_relative '../lib/solid_agent/types/message'
+require_relative '../lib/solid_agent/types/response'
+require_relative '../lib/solid_agent/types/tool_call'
+require_relative '../lib/solid_agent/types/usage'
+require_relative '../lib/solid_agent/types/stream_chunk'
+
 require_relative '../lib/solid_agent/orchestration'
 require_relative '../lib/solid_agent/orchestration/error_propagation'
 require_relative '../lib/solid_agent/orchestration/delegate_tool'

@@ -55,13 +55,13 @@ module SolidAgent
           @agent_memory_config || { strategy: :sliding_window, max_messages: 50 }
         end
 
-        def tool(name_or_class, description: nil, &block)
+        def tool(name_or_class, description: nil, parameters: nil, &block)
           if block
             agent_tool_registry.register(
               SolidAgent::Tool::InlineTool.new(
                 name: name_or_class,
                 description: description || name_or_class.to_s,
-                parameters: [],
+                parameters: parameters || extract_block_parameters(block),
                 block: block
               )
             )
@@ -134,6 +134,21 @@ module SolidAgent
 
         def on_context_overflow(method_name)
           @on_context_overflow = method_name
+        end
+
+        private
+
+        def extract_block_parameters(block)
+          return [] unless block.parameters.any?
+
+          block.parameters.map do |kind, name|
+            {
+              name: name.to_s,
+              type: :string,
+              description: name.to_s.tr('_', ' ').capitalize,
+              required: kind == :keyreq
+            }
+          end
         end
       end
     end

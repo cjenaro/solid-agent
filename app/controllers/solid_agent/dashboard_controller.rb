@@ -1,10 +1,8 @@
 module SolidAgent
   class DashboardController < ApplicationController
     def index
-      render inertia: 'solid_agent/Dashboard', props: {
-        stats: dashboard_stats,
-        recent_traces: recent_traces
-      }
+      @stats = dashboard_stats
+      @recent_traces = Trace.order(created_at: :desc).limit(10)
     end
 
     private

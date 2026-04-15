@@ -4,18 +4,17 @@ module SolidAgent
       tool_spans = Span.where(span_type: 'tool_execution')
       tool_names = tool_spans.distinct.pluck(:name)
 
-      tools = tool_names.map do |name|
+      @tools = tool_names.map do |name|
         spans = tool_spans.where(name: name)
-        {
+        durations = spans.filter_map(&:duration)
+        OpenStruct.new(
           name: name,
           total_calls: spans.count,
-          avg_duration: spans.filter_map(&:duration).then { |d| d.empty? ? 0 : d.sum / d.size },
+          avg_duration: durations.empty? ? 0 : durations.sum / durations.size,
           error_count: spans.where(status: 'error').count,
           last_used: spans.maximum(:created_at)
-        }
+        )
       end
-
-      render inertia: 'solid_agent/Tools/Index', props: { tools: tools }
     end
   end
 end

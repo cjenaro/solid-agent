@@ -118,10 +118,10 @@ end
 ```ruby
 # Synchronous execution
 result = ResearchAgent.perform_now("What are the latest developments in Rails 8?")
-result.output   # => "Rails 8 introduced..."
-result.completed?  # => true
-result.usage    # => #<SolidAgent::Types::Usage input_tokens=450, output_tokens=120>
-result.iterations # => 3
+result.output        # => "Rails 8 introduced..."
+result.completed?    # => true
+result.usage         # => #<SolidAgent::Types::Usage input_tokens=450, output_tokens=120>
+result.iterations    # => 3
 ```
 
 ### 4. Run asynchronously
@@ -726,6 +726,24 @@ Solid Agent is designed for SQLite from the ground up:
 - `sqlite-vec` provides vector similarity search for memory
 - WAL mode enables concurrent reads during writes
 - Single-file database simplifies backups and migration
+
+**Important:** When using SQLite, Solid Queue must run in async mode to avoid database locking. Add to `config/puma.rb`:
+
+```ruby
+plugin :solid_queue
+solid_queue_mode :async
+```
+
+And set a generous busy timeout in `config/database.yml`:
+
+```yaml
+default: &default
+  adapter: sqlite3
+  database: db/development.sqlite3
+  busy_timeout: 30000
+```
+
+For PostgreSQL or MySQL, use the default fork mode with `bin/rails solid_queue:start` as a separate process.
 
 ---
 

@@ -1,0 +1,49 @@
+<h1>Trace #<%= @trace.id %></h1>
+
+<div class="detail">
+  <dl>
+    <dt>Agent</dt>
+    <dd><%= @trace.agent_class %></dd>
+    <dt>Status</dt>
+    <dd><span class="badge badge-<%= @trace.status %>"><%= @trace.status %></span></dd>
+    <dt>Input</dt>
+    <dd><%= @trace.input %></dd>
+    <% if @trace.output.present? %>
+      <dt>Output</dt>
+      <dd><%= @trace.output %></dd>
+    <% end %>
+    <% if @trace.error.present? %>
+      <dt>Error</dt>
+      <dd style="color: #991b1b"><%= @trace.error %></dd>
+    <% end %>
+    <dt>Tokens</dt>
+    <dd><%= @trace.total_tokens %> (<%= @trace.usage['input_tokens'] || 0 %> in / <%= @trace.usage['output_tokens'] || 0 %> out)</dd>
+    <dt>Iterations</dt>
+    <dd><%= @trace.iteration_count %></dd>
+    <% if @trace.started_at %>
+      <dt>Started</dt>
+      <dd><%= @trace.started_at.strftime("%Y-%m-%d %H:%M:%S") %></dd>
+    <% end %>
+    <% if @trace.completed_at %>
+      <dt>Completed</dt>
+      <dd><%= @trace.completed_at.strftime("%Y-%m-%d %H:%M:%S") %></dd>
+    <% end %>
+    <dt>Conversation</dt>
+    <dd><%= link_to "##{@trace.conversation_id}", solid_agent.conversation_path(@trace.conversation) %></dd>
+  </dl>
+</div>
+
+<h2>Spans</h2>
+<% root_spans = @trace.spans.select { |s| s.parent_span_id.nil? }.sort_by(&:created_at) %>
+<% if root_spans.any? %>
+  <div class="tree">
+    <% root_spans.each do |span| %>
+      <%= render_span_tree(span, 0) %>
+    <% end %>
+    <% @trace.child_traces.each do |child| %>
+      <%= render_trace_tree(child, 1) %>
+    <% end %>
+  </div>
+<% else %>
+  <div class="empty">No spans recorded.</div>
+<% end %>

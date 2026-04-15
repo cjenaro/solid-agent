@@ -18,23 +18,23 @@ Solid Agent communicates with LLM providers through an adapter layer. Providers 
 SolidAgent.configure do |config|
   config.default_provider = :openai
 
-  config.providers.openai = {
+  config.providers[:openai] = {
     api_key: ENV["OPENAI_API_KEY"]
   }
 
-  config.providers.anthropic = {
+  config.providers[:anthropic] = {
     api_key: ENV["ANTHROPIC_API_KEY"]
   }
 
-  config.providers.google = {
+  config.providers[:google] = {
     api_key: ENV["GOOGLE_API_KEY"]
   }
 
-  config.providers.ollama = {
+  config.providers[:ollama] = {
     base_url: "http://localhost:11434"
   }
 
-  config.providers.openai_compatible = {
+  config.providers[:openai_compatible] = {
     base_url: "http://localhost:8000/v1",
     api_key: "local-key"
   }

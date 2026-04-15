@@ -1,0 +1,47 @@
+<h1>Conversation #<%= @conversation.id %></h1>
+
+<div class="detail">
+  <dl>
+    <dt>Agent</dt>
+    <dd><%= @conversation.agent_class %></dd>
+    <dt>Status</dt>
+    <dd><%= @conversation.status %></dd>
+    <dt>Created</dt>
+    <dd><%= @conversation.created_at.strftime("%Y-%m-%d %H:%M:%S") %></dd>
+  </dl>
+</div>
+
+<h2>Traces</h2>
+<% if @conversation.traces.any? %>
+  <table>
+    <thead>
+      <tr><th>ID</th><th>Status</th><th>Tokens</th><th>Started</th></tr>
+    </thead>
+    <tbody>
+      <% @conversation.traces.each do |trace| %>
+        <tr>
+          <td><%= link_to trace.id, solid_agent.trace_path(trace) %></td>
+          <td><span class="badge badge-<%= trace.status %>"><%= trace.status %></span></td>
+          <td><%= trace.total_tokens %></td>
+          <td><%= trace.started_at&.strftime("%Y-%m-%d %H:%M:%S") %></td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+<% end %>
+
+<h2>Messages</h2>
+<% if @conversation.messages.any? %>
+  <% @conversation.messages.order(:created_at).each do |msg| %>
+    <div class="detail">
+      <dl>
+        <dt>Role</dt>
+        <dd><strong><%= msg.role %></strong></dd>
+        <dt>Content</dt>
+        <dd><%= msg.content %></dd>
+      </dl>
+    </div>
+  <% end %>
+<% else %>
+  <div class="empty">No messages.</div>
+<% end %>

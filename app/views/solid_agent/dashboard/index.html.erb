@@ -1,0 +1,50 @@
+<h1>Dashboard</h1>
+
+<div class="stat-cards">
+  <div class="stat-card">
+    <div class="label">Total Traces</div>
+    <div class="value"><%= @stats[:total_traces] %></div>
+  </div>
+  <div class="stat-card">
+    <div class="label">Active Traces</div>
+    <div class="value"><%= @stats[:active_traces] %></div>
+  </div>
+  <div class="stat-card">
+    <div class="label">Conversations</div>
+    <div class="value"><%= @stats[:total_conversations] %></div>
+  </div>
+  <div class="stat-card">
+    <div class="label">Total Tokens</div>
+    <div class="value"><%= number_with_delimiter(@stats[:total_tokens]) %></div>
+  </div>
+</div>
+
+<h2>Recent Traces</h2>
+<% if @recent_traces.any? %>
+  <table>
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Agent</th>
+        <th>Status</th>
+        <th>Tokens</th>
+        <th>Iterations</th>
+        <th>Started</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% @recent_traces.each do |trace| %>
+        <tr>
+          <td><%= link_to trace.id, solid_agent.trace_path(trace) %></td>
+          <td><%= trace.agent_class %></td>
+          <td><span class="badge badge-<%= trace.status %>"><%= trace.status %></span></td>
+          <td><%= trace.total_tokens %></td>
+          <td><%= trace.iteration_count %></td>
+          <td><%= time_ago_in_words(trace.created_at) %> ago</td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+<% else %>
+  <div class="empty">No traces yet. Run an agent to see results here.</div>
+<% end %>

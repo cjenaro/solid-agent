@@ -12,7 +12,7 @@ module SolidAgent
         @default_model = default_model
       end
 
-      def build_request(messages:, tools:, stream:, model:, options: {})
+      def build_request(messages:, tools:, stream:, model:, max_tokens: nil, options: {})
         system_msg, filtered = extract_system(messages)
 
         url = "#{BASE_URL}/#{model}:#{stream ? 'streamGenerateContent' : 'generateContent'}?key=#{@api_key}"

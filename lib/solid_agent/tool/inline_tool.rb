@@ -15,8 +15,8 @@ module SolidAgent
         parameters.each do |param|
           properties[param[:name]] = { type: param[:type].to_s, description: param[:description] }.compact
           required << param[:name].to_s if param[:required]
-          @defaults[param[:name]] = param[:default] if param.key?(:default) && !param[:default].nil?
-          @required_keys << param[:name] if param[:required]
+          @defaults[param[:name].to_sym] = param[:default] if param.key?(:default) && !param[:default].nil?
+          @required_keys << param[:name].to_sym if param[:required]
         end
 
         @schema = Schema.new(

@@ -12,13 +12,13 @@ module SolidAgent
         @default_model = default_model
       end
 
-      def build_request(messages:, tools:, stream:, model:, options: {})
+      def build_request(messages:, tools:, stream:, model:, max_tokens: nil, options: {})
         system_msg, filtered = extract_system(messages)
 
         body = {
           model: model.to_s,
           messages: filtered.map { |m| serialize_message(m) },
-          max_tokens: options.delete(:max_tokens) || model.max_output,
+          max_tokens: max_tokens || model.max_output,
           stream: stream
         }
         body[:system] = system_msg if system_msg

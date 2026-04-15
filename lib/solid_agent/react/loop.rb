@@ -44,14 +44,14 @@ module SolidAgent
           if observer.should_compact?(current_tokens: @accumulated_usage.total_tokens,
                                       context_window: @model.context_window)
             all_messages = @memory.compact!(all_messages)
-            @trace.spans.create!(span_type: 'observe', name: 'compact', status: 'completed', started_at: Time.current,
-                                 completed_at: Time.current)
+            @trace.spans.create!(span_type: 'chunk', name: 'compaction', status: 'completed',
+                                 started_at: Time.current, completed_at: Time.current)
           end
 
           context = @memory.build_context(all_messages, system_prompt: @system_prompt)
 
-          think_span = @trace.spans.create!(
-            span_type: 'think', name: "think_#{@trace.iteration_count}",
+          llm_span = @trace.spans.create!(
+            span_type: 'llm', name: "step_#{@trace.iteration_count - 1}",
             status: 'running', started_at: Time.current
           )
 
@@ -66,12 +66,11 @@ module SolidAgent
           http_response = @http_adapter.call(request)
           response = @provider.parse_response(http_response)
 
-          think_span.update!(
+          llm_span.update!(
             status: 'completed',
             completed_at: Time.current,
             tokens_in: response.usage&.input_tokens || 0,
-            tokens_out: response.usage&.output_tokens || 0,
-            output: response.has_tool_calls? ? "tool_calls: #{response.tool_calls.map(&:name)}" : response.messages.first&.content&.truncate(200)
+            tokens_out: response.usage&.output_tokens || 0
           )
 
           if response.usage
@@ -85,20 +84,50 @@ module SolidAgent
           assistant_msg = response.messages.first
           all_messages << assistant_msg if assistant_msg
 
-          return build_result(status: :completed, output: assistant_msg&.content || '') unless response.has_tool_calls?
-
-          act_span = @trace.spans.create!(
-            span_type: 'act', name: "act_#{@trace.iteration_count}",
-            status: 'running', started_at: Time.current
-          )
-
-          tool_results = @execution_engine.execute_all(response.tool_calls)
-          tool_results.each do |call_id, result|
-            result_text = result.is_a?(Tool::ExecutionEngine::ToolExecutionError) ? "Error: #{result.message}" : result.to_s
-            all_messages << Types::Message.new(role: 'tool', content: result_text, tool_call_id: call_id)
+          unless response.has_tool_calls?
+            if assistant_msg&.content.present?
+              @trace.spans.create!(
+                span_type: 'chunk', name: 'text',
+                status: 'completed', started_at: Time.current, completed_at: Time.current,
+                parent_span: llm_span,
+                output: assistant_msg.content
+              )
+            end
+            return build_result(status: :completed, output: assistant_msg&.content || '')
           end
 
-          act_span.update!(status: 'completed', completed_at: Time.current)
+          response.tool_calls.each do |tc|
+            @trace.spans.create!(
+              span_type: 'chunk', name: "tool-call:#{tc.name}",
+              status: 'completed', started_at: Time.current, completed_at: Time.current,
+              parent_span: llm_span,
+              output: { id: tc.id, name: tc.name, arguments: tc.arguments }.to_json
+            )
+          end
+
+          tool_results = @execution_engine.execute_all(response.tool_calls)
+
+          tool_results.each do |call_id, result|
+            result_text = result.is_a?(Tool::ExecutionEngine::ToolExecutionError) ? "Error: #{result.message}" : result.to_s
+            tool_call = response.tool_calls.find { |tc| tc.id == call_id }
+
+            @trace.spans.create!(
+              span_type: 'tool', name: tool_call&.name || 'tool',
+              status: result.is_a?(Tool::ExecutionEngine::ToolExecutionError) ? 'error' : 'completed',
+              started_at: Time.current, completed_at: Time.current,
+              parent_span: llm_span,
+              output: result_text
+            )
+
+            @trace.spans.create!(
+              span_type: 'chunk', name: "tool-result:#{call_id}",
+              status: 'completed', started_at: Time.current, completed_at: Time.current,
+              parent_span: llm_span,
+              output: result_text
+            )
+
+            all_messages << Types::Message.new(role: 'tool', content: result_text, tool_call_id: call_id)
+          end
         end
       rescue StandardError => e
         build_result(status: :failed, output: nil, error: e.message)
@@ -132,7 +161,8 @@ module SolidAgent
         messages.reverse_each do |msg|
           return msg.content if msg.role == 'assistant' && msg.content && !msg.content.empty?
         end
-        ''
+        tool_result = messages.reverse_each.find { |msg| msg.role == 'tool' && msg.content }
+        tool_result&.content || ''
       end
     end
   end

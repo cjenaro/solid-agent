@@ -38,7 +38,7 @@ Edit `config/initializers/solid_agent.rb`:
 
 ```ruby
 SolidAgent.configure do |config|
-  config.providers.openai = {
+  config.providers[:openai] = {
     api_key: ENV["OPENAI_API_KEY"]
   }
 
@@ -125,6 +125,26 @@ Navigate to `http://localhost:3000/solid_agent`. The dashboard shows:
 - Registered agents
 
 From there, drill into individual traces to see the span tree (think/act/observe steps), token breakdown per step, and tool execution results. See the [Observability guide](observability.md) for details.
+
+## 6.5. SQLite + Solid Queue
+
+If you're using SQLite (the default), Solid Queue must run in **async mode** to avoid database locking errors. Add this to your `config/puma.rb`:
+
+```ruby
+plugin :solid_queue
+solid_queue_mode :async
+```
+
+And ensure your `config/database.yml` has a generous busy timeout:
+
+```yaml
+default: &default
+  adapter: sqlite3
+  database: db/development.sqlite3
+  busy_timeout: 30000
+```
+
+For PostgreSQL or MySQL, you can use the default fork mode (`bin/rails solid_queue:start` in a separate process).
 
 ## 7. Next Steps
 
