@@ -18,14 +18,14 @@ module SolidAgent
           name: @name,
           description: @description,
           inputSchema: {
-            type: "object",
+            type: 'object',
             properties: {
               input: {
-                type: "string",
-                description: "The task to delegate to the agent"
+                type: 'string',
+                description: 'The task to delegate to the agent'
               }
             },
-            required: ["input"]
+            required: ['input']
           }
         }
       end
@@ -33,7 +33,7 @@ module SolidAgent
       def execute(arguments, context: {})
         parent_trace = context[:trace]
         conversation = context[:conversation]
-        input_text = arguments["input"] || arguments[:input]
+        input_text = arguments['input'] || arguments[:input]
 
         child_trace = nil
 
@@ -43,7 +43,8 @@ module SolidAgent
             parent_trace: parent_trace,
             agent_class: @agent_class.name,
             trace_type: :delegate,
-            input: input_text
+            input: input_text,
+            otel_trace_id: parent_trace&.otel_trace_id
           )
 
           child_trace.start!
@@ -52,8 +53,8 @@ module SolidAgent
           child_trace.complete!
 
           result.to_s
-        rescue => e
-          child_trace&.fail!(e.message) if child_trace&.status == "running"
+        rescue StandardError => e
+          child_trace&.fail!(e.message) if child_trace&.status == 'running'
           raise
         end
       end

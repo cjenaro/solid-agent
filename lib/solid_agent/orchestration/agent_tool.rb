@@ -18,14 +18,14 @@ module SolidAgent
           name: @name,
           description: @description,
           inputSchema: {
-            type: "object",
+            type: 'object',
             properties: {
               input: {
-                type: "string",
-                description: "The input for the agent"
+                type: 'string',
+                description: 'The input for the agent'
               }
             },
-            required: ["input"]
+            required: ['input']
           }
         }
       end
@@ -33,39 +33,45 @@ module SolidAgent
       def execute(arguments, context: {})
         trace = context[:trace]
         conversation = context[:conversation]
-        input_text = arguments["input"] || arguments[:input]
+        input_text = arguments['input'] || arguments[:input]
         return @agent_class.perform_now(input_text, conversation: conversation).to_s unless trace
 
         span = nil
 
         begin
+          tool_attrs = SolidAgent::Telemetry::Serializer.span_attributes(
+            SolidAgent::Span.new(span_type: :tool_execution, name: @name),
+            tool_name: @name,
+            tool_type: 'agent'
+          )
+
           span = SolidAgent::Span.create!(
             trace: trace,
             span_type: :tool_execution,
             name: @name,
             input: input_text,
-            status: "running",
+            status: 'running',
             started_at: Time.current,
             metadata: {
               agent_class: @agent_class.name,
               tool_type: :agent_tool
-            }
+            }.merge(tool_attrs)
           )
 
           result = @agent_class.perform_now(input_text, conversation: conversation)
 
           span.update!(
             output: result.to_s,
-            status: "completed",
+            status: 'completed',
             completed_at: Time.current
           )
 
           result.to_s
-        rescue => e
+        rescue StandardError => e
           if span
             span.update!(
               output: e.message,
-              status: "error",
+              status: 'error',
               completed_at: Time.current
             )
           end
