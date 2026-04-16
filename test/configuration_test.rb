@@ -2,6 +2,25 @@ require 'test_helper'
 require 'solid_agent/configuration'
 require 'solid_agent/model'
 require 'solid_agent/models/open_ai'
+require 'solid_agent/telemetry/exporter'
+require 'solid_agent/telemetry/null_exporter'
+require 'solid_agent/telemetry/otlp_exporter'
+
+module SolidAgent
+  class << self
+    def configuration
+      @configuration ||= Configuration.new
+    end
+
+    def configure
+      yield(configuration)
+    end
+
+    def reset_configuration!
+      @configuration = Configuration.new
+    end
+  end
+end
 
 class ConfigurationTest < ActiveSupport::TestCase
   def setup
@@ -64,5 +83,30 @@ class ConfigurationTest < ActiveSupport::TestCase
     custom_store = Class.new { def upsert(**); end }
     @config.vector_store = custom_store
     assert_equal custom_store, @config.vector_store
+  end
+
+  test 'telemetry_exporters defaults to NullExporter' do
+    SolidAgent.reset_configuration!
+    assert_instance_of SolidAgent::Telemetry::NullExporter,
+                       SolidAgent.configuration.telemetry_exporters.first
+  end
+
+  test 'telemetry_exporters can be set to custom exporters' do
+    exporter = SolidAgent::Telemetry::OTLPExporter.new(endpoint: 'http://jaeger:4318/v1/traces')
+    SolidAgent.configure do |config|
+      config.telemetry_exporters = [exporter]
+    end
+    assert_equal 1, SolidAgent.configuration.telemetry_exporters.length
+    assert_instance_of SolidAgent::Telemetry::OTLPExporter, SolidAgent.configuration.telemetry_exporters.first
+  end
+
+  test 'telemetry_exporters can have multiple exporters' do
+    SolidAgent.configure do |config|
+      config.telemetry_exporters = [
+        SolidAgent::Telemetry::NullExporter.new,
+        SolidAgent::Telemetry::OTLPExporter.new
+      ]
+    end
+    assert_equal 2, SolidAgent.configuration.telemetry_exporters.length
   end
 end

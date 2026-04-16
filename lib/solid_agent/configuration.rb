@@ -3,7 +3,7 @@ module SolidAgent
     attr_accessor :default_provider, :default_model, :dashboard_enabled,
                   :dashboard_route_prefix, :vector_store, :embedding_provider,
                   :embedding_model, :http_adapter, :trace_retention,
-                  :providers, :mcp_clients
+                  :providers, :mcp_clients, :telemetry_exporters
 
     def initialize
       @default_provider = :openai
@@ -17,6 +17,7 @@ module SolidAgent
       @trace_retention = 30.days
       @providers = {}
       @mcp_clients = {}
+      @telemetry_exporters = [Telemetry::NullExporter.new]
     end
 
     def validate!
