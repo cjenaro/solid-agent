@@ -9,7 +9,7 @@ module SolidAgent
     queue_as :solid_agent
 
     def perform(trace_id:, agent_class_name:, input:, conversation_id:)
-      trace = Trace.find(trace_id)
+      trace = SolidAgent::Trace.find(trace_id)
       trace.start!
 
       agent_class = agent_class_name.constantize
@@ -18,7 +18,7 @@ module SolidAgent
       memory = resolve_memory(agent_class)
       execution_engine = resolve_execution_engine(agent_class)
 
-      conversation = Conversation.find(conversation_id)
+      conversation = SolidAgent::Conversation.find(conversation_id)
       conversation.messages.create!(role: 'user', content: input, trace: trace)
 
       react_loop = React::Loop.new(

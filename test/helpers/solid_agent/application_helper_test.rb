@@ -41,6 +41,12 @@ class SolidAgent::ApplicationHelperTest < ActionView::TestCase
     assert_equal ['openai'], span_otel_meta(span)
   end
 
+  test 'span_otel_meta returns provider for think spans' do
+    span = SolidAgent::Span.new(span_type: 'think', name: 'think_1',
+                                metadata: { 'gen_ai.provider.name' => 'openai' })
+    assert_equal ['openai'], span_otel_meta(span)
+  end
+
   test 'span_otel_meta returns empty for tool spans' do
     span = SolidAgent::Span.new(span_type: 'tool', name: 'web_search',
                                 metadata: { 'gen_ai.tool.name' => 'web_search' })

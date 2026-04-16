@@ -2,6 +2,15 @@ require 'solid_agent/react/observer'
 require 'solid_agent/agent/result'
 
 module SolidAgent
+  SpanData = Struct.new(:span_type, :name, :metadata, :tokens_in, :tokens_out, keyword_init: true) do
+    def initialize(*)
+      super
+      self.metadata ||= {}
+      self.tokens_in ||= 0
+      self.tokens_out ||= 0
+    end
+  end
+
   module React
     class Loop
       def initialize(trace:, provider:, memory:, execution_engine:, model:, system_prompt:, max_iterations:,
@@ -47,7 +56,7 @@ module SolidAgent
             all_messages = @memory.compact!(all_messages)
             @trace.spans.create!(span_type: 'chunk', name: 'compaction', status: 'completed',
                                  started_at: Time.current, completed_at: Time.current,
-                                 metadata: Telemetry::Serializer.span_attributes(Span.new(span_type: 'chunk', name: 'compaction')))
+                                 metadata: Telemetry::Serializer.span_attributes(SpanData.new(span_type: 'chunk', name: 'compaction')))
           end
 
           context = @memory.build_context(all_messages, system_prompt: @system_prompt)
@@ -55,7 +64,7 @@ module SolidAgent
           llm_span = @trace.spans.create!(
             span_type: 'llm', name: "step_#{@trace.iteration_count - 1}",
             status: 'running', started_at: Time.current,
-            metadata: Telemetry::Serializer.span_attributes(Span.new(span_type: 'llm', name: "step_#{@trace.iteration_count - 1}"),
+            metadata: Telemetry::Serializer.span_attributes(SpanData.new(span_type: 'llm', name: "step_#{@trace.iteration_count - 1}"),
                                                             provider: @provider_name, model: @model)
           )
 
@@ -95,7 +104,7 @@ module SolidAgent
                 status: 'completed', started_at: Time.current, completed_at: Time.current,
                 parent_span: llm_span,
                 output: assistant_msg.content,
-                metadata: Telemetry::Serializer.span_attributes(Span.new(span_type: 'chunk', name: 'text'))
+                metadata: Telemetry::Serializer.span_attributes(SpanData.new(span_type: 'chunk', name: 'text'))
               )
             end
             return build_result(status: :completed, output: assistant_msg&.content || '')
@@ -107,7 +116,7 @@ module SolidAgent
               status: 'completed', started_at: Time.current, completed_at: Time.current,
               parent_span: llm_span,
               output: { id: tc.id, name: tc.name, arguments: tc.arguments }.to_json,
-              metadata: Telemetry::Serializer.span_attributes(Span.new(span_type: 'chunk', name: "tool-call:#{tc.name}"),
+              metadata: Telemetry::Serializer.span_attributes(SpanData.new(span_type: 'chunk', name: "tool-call:#{tc.name}"),
                                                               tool_name: tc.name, tool_call_id: tc.id)
             )
           end
@@ -124,7 +133,7 @@ module SolidAgent
               started_at: Time.current, completed_at: Time.current,
               parent_span: llm_span,
               output: result_text,
-              metadata: Telemetry::Serializer.span_attributes(Span.new(span_type: 'tool', name: tool_call&.name || 'tool'),
+              metadata: Telemetry::Serializer.span_attributes(SpanData.new(span_type: 'tool', name: tool_call&.name || 'tool'),
                                                               tool_name: tool_call&.name, tool_call_id: call_id,
                                                               tool_type: 'function')
             )
@@ -134,7 +143,7 @@ module SolidAgent
               status: 'completed', started_at: Time.current, completed_at: Time.current,
               parent_span: llm_span,
               output: result_text,
-              metadata: Telemetry::Serializer.span_attributes(Span.new(span_type: 'chunk', name: "tool-result:#{call_id}"),
+              metadata: Telemetry::Serializer.span_attributes(SpanData.new(span_type: 'chunk', name: "tool-result:#{call_id}"),
                                                               tool_name: tool_call&.name, tool_call_id: call_id)
             )
 
@@ -165,6 +174,7 @@ module SolidAgent
 
         Agent::Result.new(
           trace_id: @trace.id,
+          conversation_id: @trace.conversation_id,
           output: output,
           usage: @accumulated_usage,
           iterations: @trace.iteration_count,

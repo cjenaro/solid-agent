@@ -1,10 +1,11 @@
 module SolidAgent
   module Agent
     class Result
-      attr_reader :trace_id, :output, :usage, :iterations, :status, :error
+      attr_reader :trace_id, :conversation_id, :output, :usage, :iterations, :status, :error
 
-      def initialize(trace_id:, output:, usage:, iterations:, status: :completed, error: nil)
+      def initialize(trace_id:, output:, usage:, iterations:, conversation_id: nil, status: :completed, error: nil)
         @trace_id = trace_id
+        @conversation_id = conversation_id
         @output = output
         @usage = usage
         @iterations = iterations
