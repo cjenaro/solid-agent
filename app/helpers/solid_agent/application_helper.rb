@@ -15,6 +15,9 @@ module SolidAgent
                    end
           parts << span_icon(span.span_type)
           parts << content_tag(:span, span_label(span), class: 'tree-name')
+          span_otel_meta(span).each do |meta|
+            parts << content_tag(:span, meta, class: 'tree-otel-meta')
+          end
           if span.span_type != 'chunk'
             parts << content_tag(:span, span.span_type, class: "badge badge-type badge-#{span.span_type}")
           end
@@ -67,20 +70,43 @@ module SolidAgent
       end
     end
 
-    private
-
     def span_label(span)
-      case span.span_type
-      when 'llm'
-        span.name
-      when 'chunk'
-        span.name
-      when 'tool'
-        span.name
+      metadata = span.metadata || {}
+      metadata['otel.span.name'] || span.name
+    end
+
+    def span_otel_meta(span)
+      metadata = span.metadata || {}
+      parts = []
+      if SolidAgent::Telemetry::Serializer::OTLLM_SPAN_TYPES.include?(span.span_type) && metadata['gen_ai.provider.name']
+        parts << metadata['gen_ai.provider.name']
+      end
+      if metadata['gen_ai.response.finish_reasons'].present?
+        parts << Array(metadata['gen_ai.response.finish_reasons']).join(', ')
+      end
+      parts
+    end
+
+    def truncate_id(id, prefix_len: 8, suffix_len: 4)
+      return id unless id && id.length > prefix_len + suffix_len + 3
+
+      "#{id[0, prefix_len]}...#{id[-suffix_len..]}"
+    end
+
+    def format_meta_value(value)
+      case value
+      when Hash
+        JSON.pretty_generate(value)
+      when Array
+        value.join(', ')
+      when String
+        value.length > 200 ? "#{value[0, 197]}..." : value
       else
-        span.name
+        value.to_s
       end
     end
+
+    private
 
     def format_output(span)
       return '' unless span.output
