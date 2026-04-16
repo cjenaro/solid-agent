@@ -269,3 +269,97 @@ SolidAgent::Span.where(span_type: "tool_execution")
   .having("errors > 0")
   .order("errors DESC")
 ```
+
+## OpenTelemetry Compliance
+
+Solid Agent traces follow the [OpenTelemetry GenAI Semantic Conventions](https://opentelemetry.io/docs/specs/semconv/gen-ai/gen-ai-spans/).
+
+### W3C TraceContext
+
+Every trace and span is assigned a W3C TraceContext-compliant ID:
+
+- `otel_trace_id`: 32-character hex string (128-bit), shared across all spans in a trace and propagated to child traces in multi-agent orchestration
+- `otel_span_id`: 16-character hex string (64-bit), unique per span
+
+### Semantic Convention Attributes
+
+Spans are automatically enriched with GenAI semantic convention attributes:
+
+| Attribute | Span Type | Description |
+|---|---|---|
+| `gen_ai.operation.name` | all | `"chat"` for LLM calls, `"execute_tool"` for tool executions |
+| `gen_ai.provider.name` | llm | `"openai"`, `"anthropic"`, `"google"`, `"ollama"` |
+| `gen_ai.request.model` | llm | `"gpt-4o"`, `"claude-3-5-sonnet"`, etc. |
+| `gen_ai.usage.input_tokens` | llm | Input token count per span |
+| `gen_ai.usage.output_tokens` | llm | Output token count per span |
+| `gen_ai.tool.name` | tool | Tool name (e.g., `"web_search"`) |
+| `gen_ai.tool.call.id` | tool | Tool call ID from the LLM response |
+| `gen_ai.tool.type` | tool | `"function"`, `"agent"`, etc. |
+| `gen_ai.conversation.id` | all | Conversation ID for correlation |
+
+### Exporting Traces
+
+By default, traces are stored in SQLite and viewable in the dashboard. To export to an OTel-compatible backend:
+
+```ruby
+# config/initializers/solid_agent.rb
+SolidAgent.configure do |config|
+  config.telemetry_exporters = [
+    SolidAgent::Telemetry::OTLPExporter.new(endpoint: "http://localhost:4318/v1/traces")
+  ]
+end
+```
+
+The OTLP exporter uses OTLP JSON encoding over HTTP. It requires **zero additional gem dependencies** — only Ruby stdlib.
+
+#### Multiple Exporters
+
+You can configure multiple exporters simultaneously:
+
+```ruby
+config.telemetry_exporters = [
+  SolidAgent::Telemetry::OTLPExporter.new(endpoint: "http://jaeger:4318/v1/traces"),
+  SolidAgent::Telemetry::OTLPExporter.new(endpoint: "http://tempo:4318/v1/traces")
+]
+```
+
+#### Custom Exporter
+
+Implement the exporter interface to send traces anywhere:
+
+```ruby
+class MyExporter < SolidAgent::Telemetry::Exporter
+  def export_trace(trace)
+    payload = {
+      trace_id: trace.otel_trace_id,
+      agent: trace.agent_class,
+      status: trace.status,
+      spans: trace.spans.map { |s|
+        {
+          span_id: s.otel_span_id,
+          name: s.name,
+          type: s.span_type,
+          attributes: s.metadata,
+          status: s.status
+        }
+      }
+    }
+    # Send payload to your backend
+  end
+end
+
+SolidAgent.configure do |config|
+  config.telemetry_exporters = [MyExporter.new]
+end
+```
+
+#### Compatible Backends
+
+Any backend that accepts [OTLP](https://opentelemetry.io/docs/specs/otlp/) over HTTP:
+
+- [Jaeger](https://www.jaegertracing.io/) (v1.54+)
+- [Grafana Tempo](https://grafana.com/oss/tempo/)
+- [Honeycomb](https://www.honeycomb.io/)
+- [Datadog](https://docs.datadoghq.com/opentelemetry/)
+- [Google Cloud Trace](https://cloud.google.com/trace/docs)
+- [Elastic APM](https://www.elastic.co/apm/)

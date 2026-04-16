@@ -5,4 +5,10 @@ SolidAgent.configure do |config|
   config.providers.openai = {
     api_key: ENV["OPENAI_API_KEY"]
   }
+
+  # Export traces to an OpenTelemetry-compatible backend (Jaeger, Tempo, Honeycomb, etc.)
+  # Uses OTLP JSON over HTTP — no additional gem dependencies required.
+  # config.telemetry_exporters = [
+  #   SolidAgent::Telemetry::OTLPExporter.new(endpoint: "http://localhost:4318/v1/traces")
+  # ]
 end
