@@ -9,4 +9,5 @@ gem "solid_queue", "~> 1.0"
 group :test do
   gem "minitest", "~> 5.0"
   gem "minitest-reporters"
+  gem "webrick"
 end
