@@ -1,0 +1,7 @@
+class AddOtelIdsToSolidAgent < ActiveRecord::Migration[8.0]
+  def change
+    add_column :solid_agent_traces, :otel_trace_id, :string
+    add_column :solid_agent_traces, :otel_span_id, :string
+    add_column :solid_agent_spans, :otel_span_id, :string
+  end
+end
