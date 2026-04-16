@@ -129,6 +129,8 @@ require_relative '../lib/solid_agent/orchestration/dsl'
 require_relative '../lib/solid_agent/telemetry/span_context'
 require_relative '../lib/solid_agent/telemetry/exporter'
 require_relative '../lib/solid_agent/telemetry/null_exporter'
+require_relative '../lib/solid_agent/telemetry/serializer'
+require_relative '../lib/solid_agent/telemetry/otlp_exporter'
 
 require_relative '../app/controllers/solid_agent/application_controller'
 require_relative '../app/controllers/solid_agent/dashboard_controller'
