@@ -5,11 +5,27 @@
     <dt>Type</dt>
     <dd><%= @span.span_type %></dd>
     <dt>Name</dt>
-    <dd><%= @span.name %></dd>
+    <dd><%= span_label(@span) %></dd>
     <dt>Status</dt>
     <dd><span class="badge badge-<%= @span.status %>"><%= @span.status %></span></dd>
+    <% if @span.otel_span_id.present? %>
+      <dt>Span ID</dt>
+      <dd>
+        <span class="otel-id" title="<%= @span.otel_span_id %>" data-copy="<%= @span.otel_span_id %>">
+          <%= truncate_id(@span.otel_span_id) %>
+        </span>
+      </dd>
+    <% end %>
     <dt>Tokens</dt>
     <dd><%= @span.tokens_in %> in / <%= @span.tokens_out %> out</dd>
+    <% if @span.started_at %>
+      <dt>Started</dt>
+      <dd><%= @span.started_at.strftime("%Y-%m-%d %H:%M:%S") %></dd>
+    <% end %>
+    <% if @span.completed_at %>
+      <dt>Completed</dt>
+      <dd><%= @span.completed_at.strftime("%Y-%m-%d %H:%M:%S") %></dd>
+    <% end %>
     <% if @span.input.present? %>
       <dt>Input</dt>
       <dd><pre><%= @span.input %></pre></dd>
@@ -17,6 +33,20 @@
     <% if @span.output.present? %>
       <dt>Output</dt>
       <dd><pre><%= @span.output %></pre></dd>
+    <% end %>
+    <% otel_metadata = (@span.metadata || {}).except('otel.span.name').reject { |k, _| k.start_with?('_') } %>
+    <% if otel_metadata.any? %>
+      <dt>Metadata</dt>
+      <dd>
+        <table class="metadata-table">
+          <% otel_metadata.each do |key, value| %>
+            <tr>
+              <td class="meta-key"><%= key %></td>
+              <td class="meta-value"><%= format_meta_value(value) %></td>
+            </tr>
+          <% end %>
+        </table>
+      </dd>
     <% end %>
   </dl>
 </div>
