@@ -5,7 +5,7 @@ module SolidAgent
   module React
     class Loop
       def initialize(trace:, provider:, memory:, execution_engine:, model:, system_prompt:, max_iterations:,
-                     max_tokens_per_run:, timeout:, http_adapter: nil)
+                     max_tokens_per_run:, timeout:, http_adapter: nil, provider_name: nil)
         @trace = trace
         @provider = provider
         @memory = memory
@@ -16,6 +16,7 @@ module SolidAgent
         @max_tokens_per_run = max_tokens_per_run
         @timeout = timeout
         @http_adapter = http_adapter || resolve_http_adapter
+        @provider_name = provider_name
         @started_at = Time.current
         @accumulated_usage = Types::Usage.new(input_tokens: 0, output_tokens: 0)
       end
@@ -45,14 +46,17 @@ module SolidAgent
                                       context_window: @model.context_window)
             all_messages = @memory.compact!(all_messages)
             @trace.spans.create!(span_type: 'chunk', name: 'compaction', status: 'completed',
-                                 started_at: Time.current, completed_at: Time.current)
+                                 started_at: Time.current, completed_at: Time.current,
+                                 metadata: Telemetry::Serializer.span_attributes(Span.new(span_type: 'chunk', name: 'compaction')))
           end
 
           context = @memory.build_context(all_messages, system_prompt: @system_prompt)
 
           llm_span = @trace.spans.create!(
             span_type: 'llm', name: "step_#{@trace.iteration_count - 1}",
-            status: 'running', started_at: Time.current
+            status: 'running', started_at: Time.current,
+            metadata: Telemetry::Serializer.span_attributes(Span.new(span_type: 'llm', name: "step_#{@trace.iteration_count - 1}"),
+                                                            provider: @provider_name, model: @model)
           )
 
           request = @provider.build_request(
@@ -90,7 +94,8 @@ module SolidAgent
                 span_type: 'chunk', name: 'text',
                 status: 'completed', started_at: Time.current, completed_at: Time.current,
                 parent_span: llm_span,
-                output: assistant_msg.content
+                output: assistant_msg.content,
+                metadata: Telemetry::Serializer.span_attributes(Span.new(span_type: 'chunk', name: 'text'))
               )
             end
             return build_result(status: :completed, output: assistant_msg&.content || '')
@@ -101,7 +106,9 @@ module SolidAgent
               span_type: 'chunk', name: "tool-call:#{tc.name}",
               status: 'completed', started_at: Time.current, completed_at: Time.current,
               parent_span: llm_span,
-              output: { id: tc.id, name: tc.name, arguments: tc.arguments }.to_json
+              output: { id: tc.id, name: tc.name, arguments: tc.arguments }.to_json,
+              metadata: Telemetry::Serializer.span_attributes(Span.new(span_type: 'chunk', name: "tool-call:#{tc.name}"),
+                                                              tool_name: tc.name, tool_call_id: tc.id)
             )
           end
 
@@ -116,14 +123,19 @@ module SolidAgent
               status: result.is_a?(Tool::ExecutionEngine::ToolExecutionError) ? 'error' : 'completed',
               started_at: Time.current, completed_at: Time.current,
               parent_span: llm_span,
-              output: result_text
+              output: result_text,
+              metadata: Telemetry::Serializer.span_attributes(Span.new(span_type: 'tool', name: tool_call&.name || 'tool'),
+                                                              tool_name: tool_call&.name, tool_call_id: call_id,
+                                                              tool_type: 'function')
             )
 
             @trace.spans.create!(
               span_type: 'chunk', name: "tool-result:#{call_id}",
               status: 'completed', started_at: Time.current, completed_at: Time.current,
               parent_span: llm_span,
-              output: result_text
+              output: result_text,
+              metadata: Telemetry::Serializer.span_attributes(Span.new(span_type: 'chunk', name: "tool-result:#{call_id}"),
+                                                              tool_name: tool_call&.name, tool_call_id: call_id)
             )
 
             all_messages << Types::Message.new(role: 'tool', content: result_text, tool_call_id: call_id)
@@ -146,6 +158,10 @@ module SolidAgent
           output: output,
           error: error
         )
+
+        SolidAgent.configuration.telemetry_exporters.each do |exporter|
+          exporter.export_trace(@trace)
+        end
 
         Agent::Result.new(
           trace_id: @trace.id,

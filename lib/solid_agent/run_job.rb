@@ -30,7 +30,8 @@ module SolidAgent
         system_prompt: agent_class.agent_instructions,
         max_iterations: agent_class.agent_max_iterations,
         max_tokens_per_run: agent_class.agent_max_tokens_per_run,
-        timeout: agent_class.agent_timeout
+        timeout: agent_class.agent_timeout,
+        provider_name: agent_class.agent_provider
       )
 
       messages = conversation.messages.where(trace: trace).order(:created_at).map do |m|
@@ -40,6 +41,9 @@ module SolidAgent
       react_loop.run(messages)
     rescue StandardError => e
       trace.fail!(e.message) if trace&.status == 'running'
+      SolidAgent.configuration.telemetry_exporters.each do |exporter|
+        exporter.export_trace(trace)
+      end
       raise
     end
 

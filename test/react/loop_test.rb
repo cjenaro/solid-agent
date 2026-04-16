@@ -203,4 +203,78 @@ class ReactLoopTest < ActiveSupport::TestCase
     assert think_span
     assert_equal 10, think_span.tokens_in
   end
+
+  test 'llm spans have gen_ai semantic convention attributes' do
+    registry = SolidAgent::Tool::Registry.new
+    registry.register(SolidAgent::Tool::InlineTool.new(
+                        name: :test_tool, description: 'Test', parameters: [], block: proc { 'ok' }
+                      ))
+    fake_response = SolidAgent::Types::Response.new(
+      messages: [SolidAgent::Types::Message.new(role: 'assistant', content: nil, tool_calls: [
+                                                  SolidAgent::Types::ToolCall.new(id: 'c1', name: 'test_tool', arguments: {})
+                                                ])],
+      tool_calls: [SolidAgent::Types::ToolCall.new(id: 'c1', name: 'test_tool', arguments: {})],
+      usage: SolidAgent::Types::Usage.new(input_tokens: 50, output_tokens: 20),
+      finish_reason: 'tool_calls'
+    )
+
+    provider = FakeProvider.new([fake_response])
+    engine = SolidAgent::Tool::ExecutionEngine.new(registry: registry, concurrency: 1)
+
+    loop_instance = SolidAgent::React::Loop.new(
+      trace: @trace, provider: provider,
+      memory: FakeMemory.new,
+      execution_engine: engine,
+      model: SolidAgent::Models::OpenAi::GPT_4O,
+      system_prompt: 'You are helpful',
+      max_iterations: 3, max_tokens_per_run: 1000, timeout: 30,
+      http_adapter: FakeHttpAdapter.new,
+      provider_name: :openai
+    )
+
+    loop_instance.run([SolidAgent::Types::Message.new(role: 'user', content: 'Hello')])
+
+    llm_span = @trace.spans.find { |s| s.span_type == 'llm' }
+    assert llm_span, 'expected an llm span to be created'
+    metadata = llm_span.metadata || {}
+    assert_equal 'chat', metadata['gen_ai.operation.name']
+    assert_equal 'openai', metadata['gen_ai.provider.name']
+  end
+
+  test 'tool spans have execute_tool semantic convention attributes' do
+    registry = SolidAgent::Tool::Registry.new
+    registry.register(SolidAgent::Tool::InlineTool.new(
+                        name: :test_tool, description: 'Test', parameters: [], block: proc { 'ok' }
+                      ))
+    fake_response = SolidAgent::Types::Response.new(
+      messages: [SolidAgent::Types::Message.new(role: 'assistant', content: nil, tool_calls: [
+                                                  SolidAgent::Types::ToolCall.new(id: 'c1', name: 'test_tool', arguments: {})
+                                                ])],
+      tool_calls: [SolidAgent::Types::ToolCall.new(id: 'c1', name: 'test_tool', arguments: {})],
+      usage: SolidAgent::Types::Usage.new(input_tokens: 50, output_tokens: 20),
+      finish_reason: 'tool_calls'
+    )
+
+    provider = FakeProvider.new([fake_response])
+    engine = SolidAgent::Tool::ExecutionEngine.new(registry: registry, concurrency: 1)
+
+    loop_instance = SolidAgent::React::Loop.new(
+      trace: @trace, provider: provider,
+      memory: FakeMemory.new,
+      execution_engine: engine,
+      model: SolidAgent::Models::OpenAi::GPT_4O,
+      system_prompt: 'You are helpful',
+      max_iterations: 3, max_tokens_per_run: 1000, timeout: 30,
+      http_adapter: FakeHttpAdapter.new,
+      provider_name: :openai
+    )
+
+    loop_instance.run([SolidAgent::Types::Message.new(role: 'user', content: 'Hello')])
+
+    tool_span = @trace.spans.find { |s| s.span_type == 'tool' }
+    assert tool_span, 'expected a tool span to be created'
+    metadata = tool_span.metadata || {}
+    assert_equal 'execute_tool', metadata['gen_ai.operation.name']
+    assert_equal 'test_tool', metadata['gen_ai.tool.name']
+  end
 end
