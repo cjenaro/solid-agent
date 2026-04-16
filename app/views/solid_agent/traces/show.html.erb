@@ -6,6 +6,22 @@
     <dd><%= @trace.agent_class %></dd>
     <dt>Status</dt>
     <dd><span class="badge badge-<%= @trace.status %>"><%= @trace.status %></span></dd>
+    <% if @trace.otel_trace_id.present? %>
+      <dt>Trace ID</dt>
+      <dd>
+        <span class="otel-id" title="<%= @trace.otel_trace_id %>" data-copy="<%= @trace.otel_trace_id %>">
+          <%= truncate_id(@trace.otel_trace_id) %>
+        </span>
+      </dd>
+    <% end %>
+    <% if @trace.otel_span_id.present? %>
+      <dt>Root Span</dt>
+      <dd>
+        <span class="otel-id" title="<%= @trace.otel_span_id %>" data-copy="<%= @trace.otel_span_id %>">
+          <%= truncate_id(@trace.otel_span_id) %>
+        </span>
+      </dd>
+    <% end %>
     <dt>Input</dt>
     <dd><%= @trace.input %></dd>
     <% if @trace.output.present? %>
