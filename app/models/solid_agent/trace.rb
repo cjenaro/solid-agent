@@ -11,6 +11,8 @@ module SolidAgent
 
     validates :status, inclusion: { in: STATUSES }
 
+    before_create :generate_otel_ids
+
     after_initialize :set_defaults
 
     def usage
@@ -48,6 +50,12 @@ module SolidAgent
     end
 
     private
+
+    def generate_otel_ids
+      require 'securerandom'
+      self.otel_trace_id ||= SecureRandom.hex(16)
+      self.otel_span_id ||= SecureRandom.hex(8)
+    end
 
     def set_defaults
       self.usage ||= {}

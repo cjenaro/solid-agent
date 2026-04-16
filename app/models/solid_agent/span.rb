@@ -10,6 +10,8 @@ module SolidAgent
 
     validates :span_type, inclusion: { in: SPAN_TYPES }
 
+    before_create :generate_otel_span_id
+
     def duration
       return nil unless started_at && completed_at
 
@@ -18,6 +20,13 @@ module SolidAgent
 
     def total_tokens
       tokens_in + tokens_out
+    end
+
+    private
+
+    def generate_otel_span_id
+      require 'securerandom'
+      self.otel_span_id ||= SecureRandom.hex(8)
     end
   end
 end

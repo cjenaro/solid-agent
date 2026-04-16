@@ -36,4 +36,11 @@ class SpanTest < ActiveSupport::TestCase
       assert_equal span_type.to_s, span.span_type
     end
   end
+
+  test 'generates otel_span_id on create' do
+    span = SolidAgent::Span.create!(trace: @trace, span_type: :think, name: 'think_1')
+    assert span.otel_span_id.present?
+    assert_equal 16, span.otel_span_id.length
+    assert_match(/\A[0-9a-f]{16}\z/, span.otel_span_id)
+  end
 end

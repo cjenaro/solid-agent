@@ -60,4 +60,25 @@ class TraceTest < ActiveSupport::TestCase
                                       usage: { 'input_tokens' => 500, 'output_tokens' => 250 })
     assert_equal 750, trace.total_tokens
   end
+
+  test 'generates otel_trace_id on create' do
+    trace = SolidAgent::Trace.create!(conversation: @conversation, agent_class: 'TestAgent', trace_type: :agent_run)
+    assert trace.otel_trace_id.present?
+    assert_equal 32, trace.otel_trace_id.length
+    assert_match(/\A[0-9a-f]{32}\z/, trace.otel_trace_id)
+  end
+
+  test 'generates otel_span_id on create' do
+    trace = SolidAgent::Trace.create!(conversation: @conversation, agent_class: 'TestAgent', trace_type: :agent_run)
+    assert trace.otel_span_id.present?
+    assert_equal 16, trace.otel_span_id.length
+    assert_match(/\A[0-9a-f]{16}\z/, trace.otel_span_id)
+  end
+
+  test 'propagates otel_trace_id from parent trace' do
+    parent = SolidAgent::Trace.create!(conversation: @conversation, agent_class: 'Supervisor', trace_type: :agent_run)
+    child = SolidAgent::Trace.create!(conversation: @conversation, agent_class: 'Worker', trace_type: :delegate,
+                                      parent_trace: parent, otel_trace_id: parent.otel_trace_id)
+    assert_equal parent.otel_trace_id, child.otel_trace_id
+  end
 end

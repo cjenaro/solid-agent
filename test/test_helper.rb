@@ -41,6 +41,8 @@ ActiveRecord::Schema.define do
     t.datetime :completed_at
     t.text :error
     t.json :metadata, default: {}
+    t.string :otel_trace_id
+    t.string :otel_span_id
     t.timestamps
   end
 
@@ -57,6 +59,7 @@ ActiveRecord::Schema.define do
     t.datetime :started_at
     t.datetime :completed_at
     t.json :metadata, default: {}
+    t.string :otel_span_id
     t.timestamps
   end
 
@@ -122,6 +125,10 @@ require_relative '../lib/solid_agent/orchestration/delegate_tool'
 require_relative '../lib/solid_agent/orchestration/agent_tool'
 require_relative '../lib/solid_agent/orchestration/parallel_executor'
 require_relative '../lib/solid_agent/orchestration/dsl'
+
+require_relative '../lib/solid_agent/telemetry/span_context'
+require_relative '../lib/solid_agent/telemetry/exporter'
+require_relative '../lib/solid_agent/telemetry/null_exporter'
 
 require_relative '../app/controllers/solid_agent/application_controller'
 require_relative '../app/controllers/solid_agent/dashboard_controller'
