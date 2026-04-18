@@ -10,7 +10,6 @@ class CreateSolidAgentMessages < ActiveRecord::Migration[7.1]
       t.timestamps
     end
 
-    add_index :solid_agent_messages, :conversation_id
     add_index :solid_agent_messages, :role
   end
 end

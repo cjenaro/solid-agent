@@ -17,7 +17,6 @@ class CreateSolidAgentSpans < ActiveRecord::Migration[7.1]
       t.timestamps
     end
 
-    add_index :solid_agent_spans, :trace_id
     add_index :solid_agent_spans, :span_type
   end
 end

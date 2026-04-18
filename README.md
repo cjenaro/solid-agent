@@ -60,7 +60,7 @@ Then run:
 
 ```bash
 bundle install
-bin/rails solid_agent:install
+bin/rails generate solid_agent:install
 bin/rails db:migrate
 ```
 

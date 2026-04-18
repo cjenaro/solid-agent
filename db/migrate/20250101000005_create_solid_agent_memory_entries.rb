@@ -10,7 +10,6 @@ class CreateSolidAgentMemoryEntries < ActiveRecord::Migration[7.1]
       t.timestamps
     end
 
-    add_index :solid_agent_memory_entries, :conversation_id
     add_index :solid_agent_memory_entries, :agent_class
     add_index :solid_agent_memory_entries, :entry_type
   end
