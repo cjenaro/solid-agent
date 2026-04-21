@@ -39,8 +39,8 @@ class ConfigurationTest < ActiveSupport::TestCase
     assert_equal true, @config.dashboard_enabled
   end
 
-  test 'default dashboard route prefix' do
-    assert_equal 'solid_agent', @config.dashboard_route_prefix
+  test 'max_trace_running_duration defaults to nil' do
+    assert_nil @config.max_trace_running_duration
   end
 
   test 'default vector store is sqlite_vec' do
