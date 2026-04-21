@@ -558,22 +558,14 @@ SolidAgent::Tool::MCP::Transport::SSE.new(
 
 ### Mounting
 
-The dashboard mounts automatically at `/solid_agent` when `config.dashboard_enabled` is `true` (the default).
-
-To customize the route prefix:
-
-```ruby
-SolidAgent.configure do |config|
-  config.dashboard_route_prefix = "ai"
-end
-```
-
-Then mount in your routes:
+Add the dashboard to your routes:
 
 ```ruby
 # config/routes.rb
-mount SolidAgent::Engine, at: "/ai"
+mount SolidAgent::Engine, at: "/solid_agent"
 ```
+
+This will mount the dashboard at `/solid_agent`.
 
 ### What You'll See
 
@@ -595,6 +587,26 @@ end
 
 Traces older than the retention period can be cleaned up via a scheduled Solid Queue job.
 
+### Trace Cleanup
+
+To automatically clean up traces that get stuck in the `running` state (e.g., due to crashes or database locking), configure `max_trace_running_duration` and schedule the cleanup job:
+
+```ruby
+# config/initializers/solid_agent.rb
+SolidAgent.configure do |config|
+  config.max_trace_running_duration = 1.hour  # Mark traces as failed after 1 hour
+end
+```
+
+Then schedule the cleanup job via Solid Queue:
+
+```ruby
+# config/initializers/solid_queue.rb or in a cron job
+SolidAgent::TraceCleanupJob.set(wait_until: 1.day.from_now, queue: :solid_agent).perform_later
+```
+
+You can also schedule it to run periodically using Solid Queue's recurring jobs feature.
+
 ---
 
 ## Configuration Reference
@@ -604,12 +616,12 @@ Traces older than the retention period can be cleaned up via a scheduled Solid Q
 | `default_provider` | Symbol | `:openai` | Default LLM provider for agents |
 | `default_model` | `SolidAgent::Model` | `Models::OpenAi::GPT_4O` | Default model |
 | `dashboard_enabled` | Boolean | `true` | Enable the observability dashboard |
-| `dashboard_route_prefix` | String | `"solid_agent"` | Route prefix for dashboard |
 | `vector_store` | Symbol | `:sqlite_vec` | Vector store backend |
 | `embedding_provider` | Symbol | `:openai` | Provider for embeddings |
 | `embedding_model` | String | `"text-embedding-3-small"` | Embedding model name |
 | `http_adapter` | Symbol | `:net_http` | HTTP adapter for LLM requests |
 | `trace_retention` | ActiveSupport::Duration | `30.days` | How long to keep trace data |
+| `max_trace_running_duration` | ActiveSupport::Duration | `nil` | Maximum time a trace can remain running before being marked as failed. `nil` disables automatic cleanup. |
 | `providers` | Hash | `{}` | Provider-specific configuration (API keys, base URLs, etc.) |
 | `mcp_clients` | Hash | `{}` | MCP server configurations |
 
