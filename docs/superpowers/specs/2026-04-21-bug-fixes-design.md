@@ -24,8 +24,8 @@ This document describes fixes for 5 bugs discovered during gem integration testi
 
 2. Update install generator (`lib/generators/solid_agent/install/install_generator.rb`):
    - Add method to inject mount line into `config/routes.rb`
-   - Check if mount already exists to avoid duplicates
-   - Use regex pattern to match existing mount statements
+   - Check if mount already exists to avoid duplicates (match `/mount\s+SolidAgent::Engine/i`)
+   - Inject at end of file if not found
 
 ### Files Changed
 - `README.md`
@@ -121,7 +121,7 @@ This document describes fixes for 5 bugs discovered during gem integration testi
 
 4. Update `README.md`:
    - Add `max_trace_running_duration` to configuration table
-   - Document how to schedule the cleanup job if using the feature
+   - Document that cleanup job should be scheduled via Solid Queue (e.g., daily: `SolidAgent::TraceCleanupJob.set(wait_until: 1.day.from_now, queue: :solid_agent).perform_later`)
 
 ### Files Changed
 - `lib/solid_agent/configuration.rb`
