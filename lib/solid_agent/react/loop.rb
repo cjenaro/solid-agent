@@ -161,12 +161,18 @@ module SolidAgent
       end
 
       def build_result(status:, output:, error: nil, reason: nil)
-        @trace.update!(
-          status: status == :completed ? 'completed' : 'failed',
-          completed_at: Time.current,
-          output: output,
-          error: error
-        )
+        begin
+          @trace.update!(
+            status: status == :completed ? 'completed' : 'failed',
+            completed_at: Time.current,
+            output: output,
+            error: error
+          )
+        rescue => e
+          # Log the update failure but continue - this prevents trace status
+          # updates from blocking the error handling flow (e.g., SQLite locking)
+          Rails.logger.error("[SolidAgent] Failed to update trace status: #{e.message}")
+        end
 
         SolidAgent.configuration.telemetry_exporters.each do |exporter|
           exporter.export_trace(@trace)
