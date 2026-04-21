@@ -1,15 +1,15 @@
 module SolidAgent
   class Configuration
     attr_accessor :default_provider, :default_model, :dashboard_enabled,
-                  :dashboard_route_prefix, :vector_store, :embedding_provider,
+                  :vector_store, :embedding_provider,
                   :embedding_model, :http_adapter, :trace_retention,
-                  :providers, :mcp_clients, :telemetry_exporters
+                  :providers, :mcp_clients, :telemetry_exporters,
+                  :max_trace_running_duration
 
     def initialize
       @default_provider = :openai
       @default_model = Models::OpenAi::GPT_4O
       @dashboard_enabled = true
-      @dashboard_route_prefix = 'solid_agent'
       @vector_store = :sqlite_vec
       @embedding_provider = :openai
       @embedding_model = 'text-embedding-3-small'
@@ -18,6 +18,7 @@ module SolidAgent
       @providers = {}
       @mcp_clients = {}
       @telemetry_exporters = [Telemetry::NullExporter.new]
+      @max_trace_running_duration = nil
     end
 
     def validate!
