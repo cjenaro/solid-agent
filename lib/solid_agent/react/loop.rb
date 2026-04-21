@@ -177,7 +177,7 @@ module SolidAgent
           conversation_id: @trace.conversation_id,
           output: output,
           usage: @accumulated_usage,
-          iterations: @trace.iteration_count,
+          iterations: status == :failed ? 0 : @trace.iteration_count,
           status: status,
           error: error
         )
