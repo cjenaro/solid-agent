@@ -31,7 +31,7 @@ module SolidAgent
               # Insert before the last 'end'
               last_end_index = routes_content.rindex(/\n\s*end\s*\z/)
               if last_end_index
-                routes_content.insert(last_end_index, "#{mount_statement}\n")
+                routes_content.insert(last_end_index + 1, "#{mount_statement}\n")
               else
                 routes_content << "\n#{mount_statement}\n"
               end
