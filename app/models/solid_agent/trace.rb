@@ -6,6 +6,7 @@ module SolidAgent
     belongs_to :parent_trace, class_name: 'SolidAgent::Trace', optional: true
     has_many :child_traces, class_name: 'SolidAgent::Trace', foreign_key: :parent_trace_id, dependent: :nullify
     has_many :spans, class_name: 'SolidAgent::Span', dependent: :destroy
+    has_many :messages, class_name: 'SolidAgent::Message', dependent: :destroy
 
     STATUSES = %w[pending running completed failed paused].freeze
 
