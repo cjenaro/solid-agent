@@ -41,6 +41,7 @@ require 'solid_agent/tool/registry'
 require 'solid_agent/tool/execution_engine'
 require 'solid_agent/tool/mcp/transport/base'
 require 'solid_agent/tool/mcp/transport/stdio'
+require 'solid_agent/tool/mcp/transport/sse'
 require 'solid_agent/tool/mcp/mcp_tool'
 require 'solid_agent/tool/mcp/client'
 
