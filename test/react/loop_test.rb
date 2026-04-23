@@ -300,6 +300,37 @@ class ReactLoopTest < ActiveSupport::TestCase
     assert overflow_called, 'Expected on_context_overflow to be called when context nears limit'
   end
 
+  test 'loop invokes on_chunk callback for text responses' do
+    chunks_received = []
+
+    provider = FakeProvider.new([
+      SolidAgent::Types::Response.new(
+        messages: [SolidAgent::Types::Message.new(role: 'assistant', content: 'Streaming answer')],
+        tool_calls: [],
+        usage: SolidAgent::Types::Usage.new(input_tokens: 50, output_tokens: 20),
+        finish_reason: 'stop'
+      )
+    ])
+
+    on_chunk = ->(text) { chunks_received << text }
+
+    loop_instance = SolidAgent::React::Loop.new(
+      trace: @trace, provider: provider,
+      memory: FakeMemory.new,
+      execution_engine: SolidAgent::Tool::ExecutionEngine.new(registry: SolidAgent::Tool::Registry.new, concurrency: 1),
+      model: SolidAgent::Models::OpenAi::GPT_4O,
+      system_prompt: 'Stream test',
+      max_iterations: 5, max_tokens_per_run: 100_000, timeout: 5.minutes,
+      http_adapter: FakeHttpAdapter.new,
+      on_chunk: on_chunk
+    )
+
+    result = loop_instance.run([SolidAgent::Types::Message.new(role: 'user', content: 'Stream me')])
+    assert result.completed?
+    assert chunks_received.any? { |c| c.include?('Streaming answer') },
+           "Expected on_chunk to receive streaming text, got: #{chunks_received.inspect}"
+  end
+
   test 'tool spans have execute_tool semantic convention attributes' do
     registry = SolidAgent::Tool::Registry.new
     registry.register(SolidAgent::Tool::InlineTool.new(

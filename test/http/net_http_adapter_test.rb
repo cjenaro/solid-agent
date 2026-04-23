@@ -70,6 +70,10 @@ class NetHttpAdapterTest < ActiveSupport::TestCase
     assert parsed['headers'].key?('X-Stream')
   end
 
+  test 'responds to call_streaming' do
+    assert @adapter.respond_to?(:call_streaming)
+  end
+
   private
 
   def network_available?

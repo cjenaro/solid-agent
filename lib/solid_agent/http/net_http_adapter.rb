@@ -28,6 +28,44 @@ module SolidAgent
         Response.new(status: 0, headers: {}, body: nil, error: e.message)
       end
 
+      def call_streaming(request)
+        uri = URI.parse(request.url)
+        http = Net::HTTP.new(uri.host, uri.port)
+        http.use_ssl = uri.scheme == 'https'
+        http.read_timeout = 120
+        http.open_timeout = 30
+
+        net_request = build_request(uri, request)
+        apply_headers(net_request, request)
+
+        buffer = String.new
+        full_headers = nil
+        status_code = nil
+
+        http.request(net_request) do |response|
+          status_code = response.code.to_i
+          full_headers = response.each_header.to_h
+
+          if response.is_a?(Net::HTTPSuccess)
+            response.read_body do |chunk|
+              buffer << chunk
+              yield chunk if block_given?
+            end
+          else
+            buffer = response.body || ''
+          end
+        end
+
+        Response.new(
+          status: status_code || 0,
+          headers: full_headers || {},
+          body: buffer,
+          error: nil
+        )
+      rescue StandardError => e
+        Response.new(status: 0, headers: {}, body: nil, error: e.message)
+      end
+
       private
 
       def build_request(uri, request)

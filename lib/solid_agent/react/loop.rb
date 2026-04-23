@@ -114,6 +114,7 @@ module SolidAgent
                 output: assistant_msg.content,
                 metadata: Telemetry::Serializer.span_attributes(SpanData.new(span_type: 'chunk', name: 'text'))
               )
+              @on_chunk&.call(assistant_msg.content)
             end
             return build_result(status: :completed, output: assistant_msg&.content || '')
           end
@@ -133,6 +134,7 @@ module SolidAgent
 
           tool_results.each do |call_id, result|
             result_text = result.is_a?(Tool::ExecutionEngine::ToolExecutionError) ? "Error: #{result.message}" : result.to_s
+            @on_chunk&.call(result_text)
             tool_call = response.tool_calls.find { |tc| tc.id == call_id }
 
             @trace.spans.create!(
