@@ -14,7 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `retry_on` implementation with configurable retry attempts
 - `tool_choice` DSL for controlling model tool usage (`auto`, `required`, `none`, or specific tool)
 - OpenAI embedder for vector similarity search
-- Multimodal message support (images via URL or base64)
+- Multimodal message support — images via URL or base64 (end-to-end: DB, entry points, provider serialization)
 - SSE MCP transport for remote MCP servers
 - Real-time dashboard updates via ActionCable
 - MIT LICENSE file

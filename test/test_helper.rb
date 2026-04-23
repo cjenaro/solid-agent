@@ -73,6 +73,8 @@ ActiveRecord::Schema.define do
     t.integer :token_count, default: 0
     t.string :model
     t.json :metadata, default: {}
+    t.string :image_url
+    t.json :image_data
     t.datetime :created_at
   end
 

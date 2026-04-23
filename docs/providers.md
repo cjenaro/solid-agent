@@ -210,6 +210,45 @@ end
 
 The adapter must respond to `call(request) -> Response`. The `HTTP::Adapters.resolve` method handles symbols, classes, and instances.
 
+## Vision / Multimodal Support
+
+All providers that support image inputs serialize multimodal content automatically. Pass images to your agent using the hash input format:
+
+```ruby
+# URL-based image
+MyAgent.perform_now({
+  text: "Describe this image",
+  image_url: "https://example.com/photo.jpg"
+})
+
+# Base64-encoded image
+MyAgent.perform_now({
+  text: "What do you see?",
+  image_data: {
+    data: "iVBORw0KGgo...",
+    media_type: "image/png"
+  }
+})
+```
+
+### Provider-specific serialization
+
+| Provider | URL images | Base64 images |
+|---|---|---|
+| OpenAI | `{ type: 'image_url', image_url: { url: ... } }` | Data URI in same format |
+| Anthropic | `{ type: 'image', source: { type: 'url', url: ... } }` | `{ type: 'image', source: { type: 'base64', ... } }` |
+| Google | `{ file_data: { file_uri: ... } }` | `{ inline_data: { mime_type: ..., data: ... } }` |
+| Ollama | Not yet supported | Not yet supported |
+
+### Supported models
+
+Not all models support vision. Use a vision-capable model:
+
+- **OpenAI:** `GPT_4O`, `GPT_4O_MINI`, `GPT_5_4`, `GPT_5_4_PRO`, `O3`, `O3_PRO`
+- **Anthropic:** All Claude models (`CLAUDE_SONNET_4`, `CLAUDE_OPUS_4_5`, etc.)
+- **Google:** All Gemini models (`GEMINI_2_5_PRO`, `GEMINI_2_5_FLASH`, etc.)
+- **Ollama:** Depends on the model (e.g., `llava`)
+
 ## Streaming
 
 Providers support streaming via `SolidAgent::Types::StreamChunk`:

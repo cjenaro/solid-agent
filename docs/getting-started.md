@@ -110,6 +110,37 @@ conversation_id = trace.conversation_id
 GreetingAgent.perform_now("And what day of the week is that?", conversation_id: conversation_id)
 ```
 
+### Vision / Image Analysis
+
+Pass a hash instead of a string to include images. Works with any provider that supports vision (OpenAI GPT-4o, Anthropic Claude Sonnet, Google Gemini):
+
+**Image by URL:**
+
+```ruby
+result = GreetingAgent.perform_now({
+  text: "What's in this image?",
+  image_url: "https://example.com/photo.jpg"
+})
+```
+
+**Image by base64 data:**
+
+```ruby
+require "base64"
+
+image_data = Base64.strict_encode64(File.read("photo.png"))
+
+result = GreetingAgent.perform_now({
+  text: "Describe this screenshot",
+  image_data: {
+    data: image_data,
+    media_type: "image/png"
+  }
+})
+```
+
+Both `perform_now` and `perform_later` accept string or hash input. Backward compatible — plain string input works exactly as before.
+
 ## 6. Check the Dashboard
 
 Start your server:

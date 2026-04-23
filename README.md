@@ -16,6 +16,7 @@ Zero-config AI agent framework for Rails 8. Build, orchestrate, and observe LLM 
 - OpenAI, Anthropic, Google Gemini, Ollama, Mistral
 - OpenAI-compatible endpoints (LiteLLM, vLLM, etc.)
 - Pluggable HTTP adapters, streaming support, per-model cost tracking
+- Vision / multimodal support (image URLs and base64 data)
 
 **Memory**
 - Sliding window, full history, and LLM-powered compaction

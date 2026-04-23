@@ -13,12 +13,14 @@ module SolidAgent
                        SolidAgent::Conversation.create!(agent_class: name)
                      end
 
+      trace_input = input.is_a?(Hash) ? input[:text] || input['text'] || input.to_json : input
+
       trace = SolidAgent::Trace.create!(
         conversation: conversation,
         agent_class: name,
         trace_type: :agent_run,
         status: 'pending',
-        input: input
+        input: trace_input
       )
 
       RunJob.perform_later(
@@ -38,12 +40,14 @@ module SolidAgent
                        SolidAgent::Conversation.create!(agent_class: name)
                      end
 
+      trace_input = input.is_a?(Hash) ? input[:text] || input['text'] || input.to_json : input
+
       trace = SolidAgent::Trace.create!(
         conversation: conversation,
         agent_class: name,
         trace_type: :agent_run,
         status: 'pending',
-        input: input
+        input: trace_input
       )
 
       RunJob.perform_now(

@@ -89,10 +89,28 @@ module SolidAgent
       )
 
       conversation.messages.where(trace: trace).destroy_all if trace.messages.any?
-      conversation.messages.create!(role: 'user', content: input, trace: trace)
+
+      # Support string input or multimodal hash: { text:, image_url:, image_data: }
+      msg_attrs = if input.is_a?(Hash)
+                    { role: 'user', content: input[:text] || input['text'], trace: trace,
+                      image_url: input[:image_url] || input['image_url'],
+                      image_data: input[:image_data] || input['image_data'] }.compact
+                  else
+                    { role: 'user', content: input, trace: trace }
+                  end
+      conversation.messages.create!(msg_attrs)
 
       messages = conversation.messages.where(trace: trace).order(:created_at).map do |m|
-        Types::Message.new(role: m.role, content: m.content, tool_calls: nil, tool_call_id: m.tool_call_id)
+        img_data = m.image_data
+        img_data = img_data.transform_keys(&:to_sym) if img_data.is_a?(Hash)
+        Types::Message.new(
+          role: m.role,
+          content: m.content,
+          tool_calls: nil,
+          tool_call_id: m.tool_call_id,
+          image_url: m.image_url,
+          image_data: img_data
+        )
       end
 
       react_loop.run(messages)

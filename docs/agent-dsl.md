@@ -39,6 +39,38 @@ System prompt. Prepend to every message context sent to the LLM. Supports heredo
 
 ## Tool Definition
 
+### Vision / Image Input
+
+Agents accept image inputs alongside text. Use a vision-capable model and pass a hash to `perform_now` or `perform_later`:
+
+```ruby
+class ImageAnalyzer < SolidAgent::Base
+  provider :openai
+  model SolidAgent::Models::OpenAi::GPT_4O
+
+  instructions <<~PROMPT
+    You analyze images. Describe what you see in detail.
+  PROMPT
+end
+
+# By URL
+result = ImageAnalyzer.perform_now({
+  text: "What is in this image?",
+  image_url: "https://example.com/photo.jpg"
+})
+
+# By base64
+require "base64"
+data = Base64.strict_encode64(File.read("screenshot.png"))
+
+result = ImageAnalyzer.perform_now({
+  text: "Describe this screenshot",
+  image_data: { data: data, media_type: "image/png" }
+})
+```
+
+String input remains fully backward compatible. See [Providers -- Vision](providers.md#vision--multimodal-support) for provider-specific details.
+
 ### Inline Tools
 
 Define tools directly in the agent class with a block:
