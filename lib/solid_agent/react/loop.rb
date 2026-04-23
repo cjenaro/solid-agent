@@ -73,6 +73,7 @@ module SolidAgent
             metadata: Telemetry::Serializer.span_attributes(SpanData.new(span_type: 'llm', name: "step_#{@trace.iteration_count - 1}"),
                                                             provider: @provider_name, model: @model)
           )
+          broadcast_span(llm_span)
 
           request = @provider.build_request(
             messages: context,
@@ -93,6 +94,7 @@ module SolidAgent
             tokens_in: response.usage&.input_tokens || 0,
             tokens_out: response.usage&.output_tokens || 0
           )
+          broadcast_span(llm_span)
 
           if response.usage
             @accumulated_usage += response.usage
@@ -166,6 +168,18 @@ module SolidAgent
 
       private
 
+      def broadcast_span(span)
+        SolidAgent::TraceChannel.broadcast_span_update(span) if defined?(SolidAgent::TraceChannel)
+      rescue StandardError
+        nil
+      end
+
+      def broadcast_trace_update(trace)
+        SolidAgent::TraceChannel.broadcast_trace_update(trace) if defined?(SolidAgent::TraceChannel)
+      rescue StandardError
+        nil
+      end
+
       def resolve_http_adapter
         SolidAgent::HTTP::Adapters.resolve(SolidAgent.configuration.http_adapter)
       end
@@ -178,6 +192,7 @@ module SolidAgent
             output: output,
             error: error
           )
+          broadcast_trace_update(@trace)
         rescue => e
           # Log the update failure but continue - this prevents trace status
           # updates from blocking the error handling flow (e.g., SQLite locking)

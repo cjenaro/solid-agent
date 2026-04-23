@@ -5,6 +5,9 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <%= csrf_meta_tags %>
   <%= csp_meta_tag %>
+  <% if defined?(ActionCable) %>
+  <%= action_cable_meta_tag %>
+  <% end %>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f8fafc; color: #1e293b; }
@@ -129,5 +132,28 @@
   <main>
     <%= yield %>
   </main>
+  <script>
+    (function() {
+      if (typeof ActionCable === 'undefined' || typeof ActionCable.createConsumer !== 'function') return;
+
+      var cable = ActionCable.createConsumer();
+      cable.subscriptions.create("SolidAgent::TraceChannel", {
+        received: function(data) {
+          if (data.type === 'trace_update') {
+            var row = document.querySelector('a[href$="/solid_agent/traces/' + data.trace_id + '"]');
+            if (row) {
+              var tr = row.closest('tr');
+              if (tr) {
+                var statusCell = tr.cells[2];
+                if (statusCell) {
+                  statusCell.innerHTML = '<span class="badge badge-' + data.status + '">' + data.status + '</span>';
+                }
+              }
+            }
+          }
+        }
+      });
+    })();
+  </script>
 </body>
 </html>
