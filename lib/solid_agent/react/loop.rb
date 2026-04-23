@@ -14,7 +14,8 @@ module SolidAgent
   module React
     class Loop
       def initialize(trace:, provider:, memory:, execution_engine:, model:, system_prompt:, max_iterations:,
-                     max_tokens_per_run:, timeout:, http_adapter: nil, provider_name: nil)
+                     max_tokens_per_run:, timeout:, http_adapter: nil, provider_name: nil,
+                     temperature: nil, tool_choice: nil, on_chunk: nil, on_context_overflow: nil)
         @trace = trace
         @provider = provider
         @memory = memory
@@ -26,6 +27,10 @@ module SolidAgent
         @timeout = timeout
         @http_adapter = http_adapter || resolve_http_adapter
         @provider_name = provider_name
+        @temperature = temperature
+        @tool_choice = tool_choice
+        @on_chunk = on_chunk
+        @on_context_overflow = on_context_overflow
         @started_at = Time.current
         @accumulated_usage = Types::Usage.new(input_tokens: 0, output_tokens: 0)
       end
@@ -73,7 +78,9 @@ module SolidAgent
             tools: @execution_engine.registry.all_schemas_hashes,
             stream: false,
             model: @model,
-            max_tokens: @model.max_output
+            max_tokens: @model.max_output,
+            temperature: @temperature,
+            tool_choice: @tool_choice
           )
 
           http_response = @http_adapter.call(request)

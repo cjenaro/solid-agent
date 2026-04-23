@@ -31,7 +31,9 @@ module SolidAgent
         max_iterations: agent_class.agent_max_iterations,
         max_tokens_per_run: agent_class.agent_max_tokens_per_run,
         timeout: agent_class.agent_timeout,
-        provider_name: agent_class.agent_provider
+        provider_name: agent_class.agent_provider,
+        temperature: agent_class.agent_temperature,
+        tool_choice: agent_class.agent_tool_choice
       )
 
       messages = conversation.messages.where(trace: trace).order(:created_at).map do |m|

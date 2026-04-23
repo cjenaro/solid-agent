@@ -1,7 +1,7 @@
 module SolidAgent
   module Provider
     module Base
-      def build_request(messages:, tools:, stream:, model:, max_tokens: nil, options: {})
+      def build_request(messages:, tools:, stream:, model:, max_tokens: nil, temperature: nil, tool_choice: nil, options: {})
         raise NotImplementedError, "#{self.class} must implement build_request"
       end
 

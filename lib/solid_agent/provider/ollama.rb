@@ -11,12 +11,15 @@ module SolidAgent
         @base_url = base_url.chomp('/')
       end
 
-      def build_request(messages:, tools:, stream:, model:, max_tokens: nil, options: {})
+      def build_request(messages:, tools:, stream:, model:, max_tokens: nil, temperature: nil, tool_choice: nil, options: {})
         body = {
           model: model.to_s,
           messages: messages.map { |m| serialize_message(m) },
           stream: stream
         }
+        body[:options] = {}
+        body[:options][:temperature] = temperature if temperature
+        body[:options][:num_predict] = max_tokens if max_tokens
         body[:tools] = tools.map { |t| translate_tool(t) } unless tools.empty?
         body.merge!(options)
 

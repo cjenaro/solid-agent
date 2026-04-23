@@ -12,7 +12,7 @@ module SolidAgent
         @default_model = default_model
       end
 
-      def build_request(messages:, tools:, stream:, model:, max_tokens: nil, options: {})
+      def build_request(messages:, tools:, stream:, model:, max_tokens: nil, temperature: nil, tool_choice: nil, options: {})
         system_msg, filtered = extract_system(messages)
 
         url = "#{BASE_URL}/#{model}:#{stream ? 'streamGenerateContent' : 'generateContent'}?key=#{@api_key}"
@@ -22,6 +22,10 @@ module SolidAgent
         }
         body[:systemInstruction] = { parts: [{ text: system_msg }] } if system_msg
         body[:tools] = [{ functionDeclarations: tools.map { |t| translate_tool(t) } }] unless tools.empty?
+        generation_config = {}
+        generation_config[:temperature] = temperature if temperature
+        generation_config[:maxOutputTokens] = max_tokens if max_tokens
+        body[:generationConfig] = generation_config unless generation_config.empty?
         body.merge!(options)
 
         HTTP::Request.new(

@@ -104,4 +104,24 @@ class OpenAiProviderTest < ActiveSupport::TestCase
   test 'tool_schema_format returns openai format' do
     assert_equal :openai, @provider.tool_schema_format
   end
+
+  test 'build_request includes temperature when provided' do
+    messages = [SolidAgent::Types::Message.new(role: 'user', content: 'Hello')]
+    request = @provider.build_request(
+      messages: messages, tools: [], stream: false,
+      model: SolidAgent::Models::OpenAi::GPT_4O, temperature: 0.3
+    )
+    body = JSON.parse(request.body)
+    assert_equal 0.3, body['temperature']
+  end
+
+  test 'build_request includes max_tokens from parameter overriding model default' do
+    messages = [SolidAgent::Types::Message.new(role: 'user', content: 'Hello')]
+    request = @provider.build_request(
+      messages: messages, tools: [], stream: false,
+      model: SolidAgent::Models::OpenAi::GPT_4O, max_tokens: 2048
+    )
+    body = JSON.parse(request.body)
+    assert_equal 2048, body['max_tokens']
+  end
 end

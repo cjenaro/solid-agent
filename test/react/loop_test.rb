@@ -23,7 +23,7 @@ class FakeProvider
     @call_count = 0
   end
 
-  def build_request(messages:, tools:, stream:, model:, max_tokens: nil, options: {})
+  def build_request(messages:, tools:, stream:, model:, max_tokens: nil, temperature: nil, tool_choice: nil, options: {})
     SolidAgent::HTTP::Request.new(
       method: :post, url: 'https://fake.test/v1/chat',
       headers: {}, body: '{}', stream: false

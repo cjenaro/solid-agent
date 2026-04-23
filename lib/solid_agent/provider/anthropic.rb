@@ -12,7 +12,7 @@ module SolidAgent
         @default_model = default_model
       end
 
-      def build_request(messages:, tools:, stream:, model:, max_tokens: nil, options: {})
+      def build_request(messages:, tools:, stream:, model:, max_tokens: nil, temperature: nil, tool_choice: nil, options: {})
         system_msg, filtered = extract_system(messages)
 
         body = {
@@ -21,6 +21,7 @@ module SolidAgent
           max_tokens: max_tokens || model.max_output,
           stream: stream
         }
+        body[:temperature] = temperature if temperature
         body[:system] = system_msg if system_msg
         body[:tools] = tools.map { |t| translate_tool(t) } unless tools.empty?
         body.merge!(options)
