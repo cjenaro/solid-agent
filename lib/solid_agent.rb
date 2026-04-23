@@ -63,6 +63,7 @@ require 'solid_agent/memory/chain_builder'
 require 'solid_agent/vector_store/base'
 require 'solid_agent/vector_store/sqlite_vec_adapter'
 require 'solid_agent/embedder/base'
+require 'solid_agent/embedder/openai'
 require 'solid_agent/observational_memory'
 
 require 'solid_agent/agent/result'
