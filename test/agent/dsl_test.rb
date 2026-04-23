@@ -71,3 +71,44 @@ class AgentDSLTest < ActiveSupport::TestCase
     assert_equal 25, bare.agent_max_iterations
   end
 end
+
+class ToolChoiceAgent < SolidAgent::Base
+  provider :openai
+  model SolidAgent::Models::OpenAi::GPT_4O
+  tool_choice :required
+
+  tool :ping, description: 'Ping' do
+    'pong'
+  end
+end
+
+class ToolChoiceAutoAgent < SolidAgent::Base
+  provider :openai
+  model SolidAgent::Models::OpenAi::GPT_4O
+  tool_choice :auto
+end
+
+class ToolChoiceNoneAgent < SolidAgent::Base
+  provider :openai
+  model SolidAgent::Models::OpenAi::GPT_4O
+  tool_choice :none
+end
+
+class AgentToolChoiceTest < ActiveSupport::TestCase
+  test 'tool_choice stores the value' do
+    assert_equal :required, ToolChoiceAgent.agent_tool_choice
+  end
+
+  test 'tool_choice auto' do
+    assert_equal :auto, ToolChoiceAutoAgent.agent_tool_choice
+  end
+
+  test 'tool_choice none' do
+    assert_equal :none, ToolChoiceNoneAgent.agent_tool_choice
+  end
+
+  test 'tool_choice defaults to nil' do
+    bare = Class.new(SolidAgent::Base)
+    assert_nil bare.agent_tool_choice
+  end
+end

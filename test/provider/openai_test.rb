@@ -124,4 +124,50 @@ class OpenAiProviderTest < ActiveSupport::TestCase
     body = JSON.parse(request.body)
     assert_equal 2048, body['max_tokens']
   end
+
+  test 'build_request includes tool_choice auto' do
+    messages = [SolidAgent::Types::Message.new(role: 'user', content: 'Hello')]
+    tools = [{
+      name: 'test', description: 'Test', inputSchema: { type: 'object', properties: {} }
+    }]
+    request = @provider.build_request(
+      messages: messages, tools: tools, stream: false,
+      model: SolidAgent::Models::OpenAi::GPT_4O, tool_choice: :auto
+    )
+    body = JSON.parse(request.body)
+    assert_equal 'auto', body['tool_choice']
+  end
+
+  test 'build_request includes tool_choice required' do
+    messages = [SolidAgent::Types::Message.new(role: 'user', content: 'Hello')]
+    tools = [{
+      name: 'test', description: 'Test', inputSchema: { type: 'object', properties: {} }
+    }]
+    request = @provider.build_request(
+      messages: messages, tools: tools, stream: false,
+      model: SolidAgent::Models::OpenAi::GPT_4O, tool_choice: :required
+    )
+    body = JSON.parse(request.body)
+    assert_equal 'required', body['tool_choice']
+  end
+
+  test 'build_request includes tool_choice none' do
+    messages = [SolidAgent::Types::Message.new(role: 'user', content: 'Hello')]
+    request = @provider.build_request(
+      messages: messages, tools: [], stream: false,
+      model: SolidAgent::Models::OpenAi::GPT_4O, tool_choice: :none
+    )
+    body = JSON.parse(request.body)
+    assert_equal 'none', body['tool_choice']
+  end
+
+  test 'build_request does not include tool_choice when nil' do
+    messages = [SolidAgent::Types::Message.new(role: 'user', content: 'Hello')]
+    request = @provider.build_request(
+      messages: messages, tools: [], stream: false,
+      model: SolidAgent::Models::OpenAi::GPT_4O, tool_choice: nil
+    )
+    body = JSON.parse(request.body)
+    refute body.key?('tool_choice')
+  end
 end

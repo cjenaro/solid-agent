@@ -122,6 +122,14 @@ module SolidAgent
           @agent_approval_required || []
         end
 
+        def tool_choice(choice)
+          @agent_tool_choice = choice
+        end
+
+        def agent_tool_choice
+          @agent_tool_choice
+        end
+
         def before_invoke(method_name)
           @before_invoke_callbacks ||= []
           @before_invoke_callbacks << method_name

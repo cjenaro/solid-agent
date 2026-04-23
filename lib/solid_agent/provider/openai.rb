@@ -21,6 +21,7 @@ module SolidAgent
         }
         body[:max_tokens] = max_tokens if max_tokens
         body[:temperature] = temperature if temperature
+        body[:tool_choice] = tool_choice.to_s if tool_choice
         body[:tools] = tools.map { |t| translate_tool(t) } unless tools.empty?
         body.merge!(options)
 

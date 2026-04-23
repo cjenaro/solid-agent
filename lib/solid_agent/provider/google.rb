@@ -26,6 +26,18 @@ module SolidAgent
         generation_config[:temperature] = temperature if temperature
         generation_config[:maxOutputTokens] = max_tokens if max_tokens
         body[:generationConfig] = generation_config unless generation_config.empty?
+        if tool_choice && !tools.empty?
+          tool_config = { function_calling_config: {} }
+          case tool_choice
+          when :auto then tool_config[:function_calling_config][:mode] = 'AUTO'
+          when :required then tool_config[:function_calling_config][:mode] = 'ANY'
+          when :none then tool_config[:function_calling_config][:mode] = 'NONE'
+          when String
+            tool_config[:function_calling_config][:mode] = 'ANY'
+            tool_config[:function_calling_config][:allowed_function_names] = [tool_choice]
+          end
+          body[:toolConfig] = tool_config
+        end
         body.merge!(options)
 
         HTTP::Request.new(

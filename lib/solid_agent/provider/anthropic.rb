@@ -24,6 +24,7 @@ module SolidAgent
         body[:temperature] = temperature if temperature
         body[:system] = system_msg if system_msg
         body[:tools] = tools.map { |t| translate_tool(t) } unless tools.empty?
+        body[:tool_choice] = translate_tool_choice(tool_choice) if tool_choice
         body.merge!(options)
 
         HTTP::Request.new(
@@ -167,6 +168,16 @@ module SolidAgent
           description: tool[:description],
           input_schema: tool[:inputSchema]
         }
+      end
+
+      def translate_tool_choice(choice)
+        case choice
+        when :auto then { type: 'auto' }
+        when :required then { type: 'any' }
+        when :none then { type: 'none' }
+        when String then { type: 'tool', name: choice }
+        else { type: 'auto' }
+        end
       end
 
       def raise_error(response)
