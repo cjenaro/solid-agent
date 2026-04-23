@@ -144,6 +144,18 @@ module SolidAgent
           @on_context_overflow = method_name
         end
 
+        def before_invoke_callbacks
+          @before_invoke_callbacks || []
+        end
+
+        def after_invoke_callbacks
+          @after_invoke_callbacks || []
+        end
+
+        def context_overflow_callback
+          @on_context_overflow
+        end
+
         private
 
         def extract_block_parameters(block)

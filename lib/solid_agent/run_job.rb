@@ -14,12 +14,63 @@ module SolidAgent
 
       agent_class = agent_class_name.constantize
 
+      # Before invoke callbacks
+      agent_instance = agent_class.new
+      agent_class.before_invoke_callbacks.each do |cb|
+        agent_instance.send(cb, input)
+      end
+
+      retry_config = agent_class.agent_retry_config
+      attempts = retry_config ? retry_config[:attempts] : 1
+      retry_error_class = retry_config&.dig(:error)
+
+      result = nil
+      last_error = nil
+
+      attempts.times do |attempt|
+        begin
+          result = execute_run(trace: trace, agent_class: agent_class, agent_instance: agent_instance,
+                               input: input, conversation_id: conversation_id)
+          last_error = nil
+          break
+        rescue => e
+          last_error = e
+          if retry_error_class && e.is_a?(retry_error_class) && attempt < attempts - 1
+            Rails.logger.warn("[SolidAgent] Retry #{attempt + 1}/#{attempts} for #{agent_class_name}: #{e.message}")
+            trace.update!(status: 'running') if trace.status == 'failed'
+          else
+            raise
+          end
+        end
+      end
+
+      # After invoke callbacks
+      agent_class.after_invoke_callbacks.each do |cb|
+        agent_instance.send(cb, result)
+      end
+
+      result
+    rescue StandardError => e
+      trace.fail!(e.message) if trace&.status == 'running'
+      SolidAgent.configuration.telemetry_exporters.each do |exporter|
+        exporter.export_trace(trace)
+      end
+      raise
+    end
+
+    private
+
+    def execute_run(trace:, agent_class:, agent_instance:, input:, conversation_id:)
       provider = resolve_provider(agent_class)
       memory = resolve_memory(agent_class)
       execution_engine = resolve_execution_engine(agent_class)
 
       conversation = SolidAgent::Conversation.find(conversation_id)
-      conversation.messages.create!(role: 'user', content: input, trace: trace)
+
+      on_overflow = nil
+      if agent_class.context_overflow_callback
+        on_overflow = ->(messages) { agent_instance.send(agent_class.context_overflow_callback, messages) }
+      end
 
       react_loop = React::Loop.new(
         trace: trace,
@@ -33,23 +84,19 @@ module SolidAgent
         timeout: agent_class.agent_timeout,
         provider_name: agent_class.agent_provider,
         temperature: agent_class.agent_temperature,
-        tool_choice: agent_class.agent_tool_choice
+        tool_choice: agent_class.agent_tool_choice,
+        on_context_overflow: on_overflow
       )
+
+      conversation.messages.where(trace: trace).destroy_all if trace.messages.any?
+      conversation.messages.create!(role: 'user', content: input, trace: trace)
 
       messages = conversation.messages.where(trace: trace).order(:created_at).map do |m|
         Types::Message.new(role: m.role, content: m.content, tool_calls: nil, tool_call_id: m.tool_call_id)
       end
 
       react_loop.run(messages)
-    rescue StandardError => e
-      trace.fail!(e.message) if trace&.status == 'running'
-      SolidAgent.configuration.telemetry_exporters.each do |exporter|
-        exporter.export_trace(trace)
-      end
-      raise
     end
-
-    private
 
     def resolve_provider(agent_class)
       provider_name = agent_class.agent_provider

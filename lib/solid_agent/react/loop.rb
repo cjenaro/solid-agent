@@ -58,6 +58,7 @@ module SolidAgent
 
           if observer.should_compact?(current_tokens: @accumulated_usage.total_tokens,
                                       context_window: @model.context_window)
+            @on_context_overflow&.call(all_messages)
             all_messages = @memory.compact!(all_messages)
             @trace.spans.create!(span_type: 'chunk', name: 'compaction', status: 'completed',
                                  started_at: Time.current, completed_at: Time.current,

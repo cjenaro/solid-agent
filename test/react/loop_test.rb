@@ -241,6 +241,65 @@ class ReactLoopTest < ActiveSupport::TestCase
     assert_equal 'openai', metadata['gen_ai.provider.name']
   end
 
+  test 'calls on_context_overflow when context nears limit' do
+    overflow_called = false
+
+    overflow_memory = FakeMemory.new
+    trace = SolidAgent::Trace.create!(
+      conversation: @conversation,
+      agent_class: 'TestAgent',
+      trace_type: :agent_run,
+      status: 'running',
+      started_at: Time.current
+    )
+
+    # Tiny context window: after iteration 1 adds 150 tokens, the 85% threshold
+    # will be exceeded at the start of iteration 2 (150/100 = 1.5 >= 0.85)
+    small_model = SolidAgent::Model.new('test-tiny', context_window: 100, max_output: 50)
+
+    registry = SolidAgent::Tool::Registry.new
+    registry.register(SolidAgent::Tool::InlineTool.new(
+      name: :ping, description: 'Ping', parameters: [], block: proc { 'pong' }
+    ))
+    engine = SolidAgent::Tool::ExecutionEngine.new(registry: registry, concurrency: 1)
+
+    # First response: use tool (to continue loop), second: final answer
+    provider = FakeProvider.new([
+      SolidAgent::Types::Response.new(
+        messages: [SolidAgent::Types::Message.new(role: 'assistant', content: nil, tool_calls: [
+          SolidAgent::Types::ToolCall.new(id: 'c1', name: 'ping', arguments: {})
+        ])],
+        tool_calls: [SolidAgent::Types::ToolCall.new(id: 'c1', name: 'ping', arguments: {})],
+        usage: SolidAgent::Types::Usage.new(input_tokens: 100, output_tokens: 50),
+        finish_reason: 'tool_calls'
+      ),
+      SolidAgent::Types::Response.new(
+        messages: [SolidAgent::Types::Message.new(role: 'assistant', content: 'Done')],
+        tool_calls: [],
+        usage: SolidAgent::Types::Usage.new(input_tokens: 50, output_tokens: 20),
+        finish_reason: 'stop'
+      )
+    ])
+
+    on_overflow = ->(_messages) {
+      overflow_called = true
+    }
+
+    loop_instance = SolidAgent::React::Loop.new(
+      trace: trace, provider: provider,
+      memory: overflow_memory,
+      execution_engine: engine,
+      model: small_model,
+      system_prompt: 'Test',
+      max_iterations: 5, max_tokens_per_run: 100_000, timeout: 5.minutes,
+      http_adapter: FakeHttpAdapter.new,
+      on_context_overflow: on_overflow
+    )
+
+    loop_instance.run([SolidAgent::Types::Message.new(role: 'user', content: 'Hi')])
+    assert overflow_called, 'Expected on_context_overflow to be called when context nears limit'
+  end
+
   test 'tool spans have execute_tool semantic convention attributes' do
     registry = SolidAgent::Tool::Registry.new
     registry.register(SolidAgent::Tool::InlineTool.new(
