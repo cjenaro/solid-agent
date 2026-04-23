@@ -1,5 +1,6 @@
 require 'solid_agent/react/observer'
 require 'solid_agent/agent/result'
+require 'solid_agent/tool/image_result'
 
 module SolidAgent
   SpanData = Struct.new(:span_type, :name, :metadata, :tokens_in, :tokens_out, keyword_init: true) do
@@ -135,13 +136,23 @@ module SolidAgent
           tool_results = @execution_engine.execute_all(response.tool_calls)
 
           tool_results.each do |call_id, result|
-            result_text = result.is_a?(Tool::ExecutionEngine::ToolExecutionError) ? "Error: #{result.message}" : result.to_s
+            is_image = result.is_a?(Tool::ImageResult)
+            is_error = result.is_a?(Tool::ExecutionEngine::ToolExecutionError)
+
+            result_text = if is_error
+              "Error: #{result.message}"
+            elsif is_image
+              result.text
+            else
+              result.to_s
+            end
+
             @on_chunk&.call(result_text)
             tool_call = response.tool_calls.find { |tc| tc.id == call_id }
 
             @trace.spans.create!(
               span_type: 'tool', name: tool_call&.name || 'tool',
-              status: result.is_a?(Tool::ExecutionEngine::ToolExecutionError) ? 'error' : 'completed',
+              status: is_error ? 'error' : 'completed',
               started_at: Time.current, completed_at: Time.current,
               parent_span: llm_span,
               output: result_text,
@@ -160,6 +171,16 @@ module SolidAgent
             )
 
             all_messages << Types::Message.new(role: 'tool', content: result_text, tool_call_id: call_id)
+
+            # If the tool returned an image, inject it as a user message
+            # (OpenAI only supports images in user messages, not tool messages)
+            if is_image
+              all_messages << Types::Message.new(
+                role: 'user',
+                content: result_text,
+                image_data: result.image_data
+              )
+            end
           end
         end
       rescue StandardError => e
