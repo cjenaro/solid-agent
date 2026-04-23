@@ -63,3 +63,29 @@ class RunJobTest < ActiveSupport::TestCase
     assert_equal [:log_after], CallbackTrackingAgent.after_invoke_callbacks
   end
 end
+
+class RetryTestError < StandardError; end
+
+class RetryAgent < SolidAgent::Base
+  provider :openai
+  model SolidAgent::Models::OpenAi::GPT_4O
+  max_iterations 1
+  timeout 5.minutes
+
+  retry_on RetryTestError, attempts: 3
+
+  instructions 'You retry things.'
+end
+
+class RunJobRetryTest < ActiveSupport::TestCase
+  test 'retry_on stores config on agent class' do
+    config = RetryAgent.agent_retry_config
+    assert_equal RetryTestError, config[:error]
+    assert_equal 3, config[:attempts]
+  end
+
+  test 'retry_on defaults to nil when not set' do
+    bare = Class.new(SolidAgent::Base)
+    assert_nil bare.agent_retry_config
+  end
+end
