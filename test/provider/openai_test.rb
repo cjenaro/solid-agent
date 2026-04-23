@@ -170,4 +170,24 @@ class OpenAiProviderTest < ActiveSupport::TestCase
     body = JSON.parse(request.body)
     refute body.key?('tool_choice')
   end
+
+  test 'serializes multimodal message with image_url' do
+    messages = [SolidAgent::Types::Message.new(
+      role: 'user', content: 'Describe this image',
+      image_url: 'https://example.com/cat.jpg'
+    )]
+    request = @provider.build_request(
+      messages: messages, tools: [], stream: false,
+      model: SolidAgent::Models::OpenAi::GPT_4O
+    )
+    body = JSON.parse(request.body)
+    msg = body['messages'][0]
+    assert_equal 'user', msg['role']
+    content = msg['content']
+    assert content.is_a?(Array)
+    text_part = content.find { |p| p['type'] == 'text' }
+    image_part = content.find { |p| p['type'] == 'image_url' }
+    assert_equal 'Describe this image', text_part['text']
+    assert_equal 'https://example.com/cat.jpg', image_part.dig('image_url', 'url')
+  end
 end

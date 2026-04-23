@@ -155,6 +155,22 @@ module SolidAgent
             { type: 'tool_use', id: tc.id, name: tc.name, input: tc.arguments }
           end
           h[:content] = text_block + tool_blocks
+        elsif message.image_url || message.image_data
+          content_parts = [{ type: 'text', text: message.content || '' }]
+          if message.image_url
+            content_parts << { type: 'image', source: { type: 'url', url: message.image_url } }
+          end
+          if message.image_data
+            content_parts << {
+              type: 'image',
+              source: {
+                type: 'base64',
+                media_type: message.image_data[:media_type],
+                data: message.image_data[:data]
+              }
+            }
+          end
+          h[:content] = content_parts
         else
           h[:content] = message.content || ''
         end

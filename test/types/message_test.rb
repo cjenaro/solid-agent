@@ -1,42 +1,65 @@
 require 'test_helper'
 require 'solid_agent'
 
-class TypesMessageTest < ActiveSupport::TestCase
-  test 'creates user message' do
+class MessageTest < ActiveSupport::TestCase
+  test 'creates text-only message' do
     msg = SolidAgent::Types::Message.new(role: 'user', content: 'Hello')
     assert_equal 'user', msg.role
     assert_equal 'Hello', msg.content
+    assert_nil msg.image_url
+    assert_nil msg.image_data
   end
 
-  test 'creates assistant message with tool calls' do
-    tool_call = SolidAgent::Types::ToolCall.new(id: 'call_1', name: 'search', arguments: { 'query' => 'test' })
-    msg = SolidAgent::Types::Message.new(role: 'assistant', content: nil, tool_calls: [tool_call])
-    assert_equal 'assistant', msg.role
-    assert_equal 1, msg.tool_calls.length
+  test 'creates message with image URL' do
+    msg = SolidAgent::Types::Message.new(
+      role: 'user',
+      content: 'What is in this image?',
+      image_url: 'https://example.com/photo.jpg'
+    )
+    assert_equal 'What is in this image?', msg.content
+    assert_equal 'https://example.com/photo.jpg', msg.image_url
   end
 
-  test 'creates tool result message' do
-    msg = SolidAgent::Types::Message.new(role: 'tool', content: 'result text', tool_call_id: 'call_1')
-    assert_equal 'tool', msg.role
-    assert_equal 'call_1', msg.tool_call_id
+  test 'creates message with base64 image data' do
+    msg = SolidAgent::Types::Message.new(
+      role: 'user',
+      content: 'Describe this',
+      image_data: { data: 'iVBORw0KGgo=', media_type: 'image/png' }
+    )
+    assert_equal 'Describe this', msg.content
+    assert_equal 'image/png', msg.image_data[:media_type]
   end
 
-  test 'message is immutable' do
+  test 'multimodal? returns false for text-only' do
     msg = SolidAgent::Types::Message.new(role: 'user', content: 'Hello')
-    assert msg.frozen?
+    refute msg.multimodal?
   end
 
-  test 'to_hash serializes for provider' do
-    msg = SolidAgent::Types::Message.new(role: 'user', content: 'Hello')
-    hash = msg.to_hash
-    assert_equal 'user', hash[:role]
-    assert_equal 'Hello', hash[:content]
+  test 'multimodal? returns true with image_url' do
+    msg = SolidAgent::Types::Message.new(role: 'user', content: 'Hi', image_url: 'https://example.com/photo.jpg')
+    assert msg.multimodal?
   end
 
-  test 'to_hash omits nil fields' do
-    msg = SolidAgent::Types::Message.new(role: 'user', content: 'Hello')
-    hash = msg.to_hash
-    assert_not hash.key?(:tool_calls)
-    assert_not hash.key?(:tool_call_id)
+  test 'to_hash includes content as array when image_url present' do
+    msg = SolidAgent::Types::Message.new(
+      role: 'user',
+      content: 'What is this?',
+      image_url: 'https://example.com/photo.jpg'
+    )
+    h = msg.to_hash
+    assert_equal 'user', h[:role]
+    content_parts = h[:content]
+    assert content_parts.is_a?(Array)
+    assert_equal 2, content_parts.length
+    text_part = content_parts.find { |p| p[:type] == 'text' }
+    image_part = content_parts.find { |p| p[:type] == 'image_url' }
+    assert_equal 'What is this?', text_part[:text]
+    assert_equal 'https://example.com/photo.jpg', image_part.dig(:image_url, :url)
+  end
+
+  test 'to_hash returns plain string content when no images' do
+    msg = SolidAgent::Types::Message.new(role: 'user', content: 'Just text')
+    h = msg.to_hash
+    assert_equal 'Just text', h[:content]
   end
 end

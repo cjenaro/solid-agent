@@ -144,6 +144,17 @@ module SolidAgent
             h[:parts] << { functionCall: { name: tc.name, args: tc.arguments } }
           end
         end
+        if message.image_url
+          h[:parts] << { file_data: { file_uri: message.image_url } }
+        end
+        if message.image_data
+          h[:parts] << {
+            inline_data: {
+              mime_type: message.image_data[:media_type],
+              data: message.image_data[:data]
+            }
+          }
+        end
         h[:parts] = [{ text: '' }] if h[:parts].empty?
         h
       end

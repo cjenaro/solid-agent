@@ -115,7 +115,23 @@ module SolidAgent
 
       def serialize_message(message)
         h = { role: message.role }
-        h[:content] = message.content if message.content
+        if message.image_url || message.image_data
+          parts = [{ type: 'text', text: message.content }]
+          if message.image_url
+            parts << { type: 'image_url', image_url: { url: message.image_url } }
+          end
+          if message.image_data
+            parts << {
+              type: 'image_url',
+              image_url: {
+                url: "data:#{message.image_data[:media_type]};base64,#{message.image_data[:data]}"
+              }
+            }
+          end
+          h[:content] = parts
+        elsif message.content
+          h[:content] = message.content
+        end
         if message.tool_calls && !message.tool_calls.empty?
           h[:tool_calls] = message.tool_calls.map do |tc|
             {
