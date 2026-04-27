@@ -34,7 +34,9 @@ module SolidAgent
         trace = context[:trace]
         conversation = context[:conversation]
         input_text = arguments['input'] || arguments[:input]
-        return @agent_class.perform_now(input_text, conversation: conversation).to_s unless trace
+        result = @agent_class.perform_now(input_text, conversation: conversation)
+        output_text = result.is_a?(SolidAgent::Agent::Result) ? result.output.to_s : result.to_s
+        return output_text unless trace
 
         span = nil
 
@@ -59,14 +61,15 @@ module SolidAgent
           )
 
           result = @agent_class.perform_now(input_text, conversation: conversation)
+          output_text = result.is_a?(SolidAgent::Agent::Result) ? result.output.to_s : result.to_s
 
           span.update!(
-            output: result.to_s,
+            output: output_text,
             status: 'completed',
             completed_at: Time.current
           )
 
-          result.to_s
+          output_text
         rescue StandardError => e
           if span
             span.update!(

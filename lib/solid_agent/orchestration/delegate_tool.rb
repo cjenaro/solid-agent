@@ -49,10 +49,11 @@ module SolidAgent
 
           child_trace.start!
           result = @agent_class.perform_now(input_text, trace: child_trace, conversation: conversation)
-          child_trace.update!(output: result.to_s)
+          output_text = result.is_a?(Agent::Result) ? result.output.to_s : result.to_s
+          child_trace.update!(output: output_text)
           child_trace.complete!
 
-          result.to_s
+          output_text
         rescue StandardError => e
           child_trace&.fail!(e.message) if child_trace&.status == 'running'
           raise
