@@ -112,7 +112,7 @@ module SolidAgent
           end
         end
       rescue Timeout::Error
-        ToolExecutionError.new("Tool '#{tool_call.name}' timed out after #{@timeout}s")
+        ToolExecutionError.new("Tool '#{tool_call.name}' timed out after #{effective_timeout}s")
       rescue StandardError => e
         ToolExecutionError.new("Tool '#{tool_call.name}' error: #{e.message}")
       end
