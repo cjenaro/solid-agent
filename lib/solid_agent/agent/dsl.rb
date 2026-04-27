@@ -55,14 +55,15 @@ module SolidAgent
           @agent_memory_config || { strategy: :sliding_window, max_messages: 50 }
         end
 
-        def tool(name_or_class, description: nil, parameters: nil, &block)
+        def tool(name_or_class, description: nil, parameters: nil, timeout: nil, &block)
           if block
             agent_tool_registry.register(
               SolidAgent::Tool::InlineTool.new(
                 name: name_or_class,
                 description: description || name_or_class.to_s,
                 parameters: parameters || extract_block_parameters(block),
-                block: block
+                block: block,
+                timeout: timeout
               )
             )
           else

@@ -1,5 +1,13 @@
 <h1>Traces</h1>
 
+<% running_traces = @traces.select { |t| t.status == 'running' || t.status == 'pending' } %>
+<% if running_traces.any? %>
+  <div style="margin-bottom:1rem; padding:0.75rem 1rem; background:#fef3c7; border-radius:0.5rem; font-size:0.875rem; display:flex; align-items:center; gap:1rem;">
+    <span><strong><%= running_traces.size %></strong> trace(s) still running/pending</span>
+    <%= button_to "Cancel all running", solid_agent.cancel_running_traces_path, method: :patch, class: "btn-cancel", form: { style: "display:inline-block;" } %>
+  </div>
+<% end %>
+
 <table>
   <thead>
     <tr>

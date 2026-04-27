@@ -3,12 +3,13 @@ require 'solid_agent/tool/schema'
 module SolidAgent
   module Tool
     class InlineTool
-      attr_reader :schema
+      attr_reader :schema, :tool_timeout
 
-      def initialize(name:, description:, parameters:, block:)
+      def initialize(name:, description:, parameters:, block:, timeout: nil)
         @block = block
         @defaults = {}
         @required_keys = []
+        @tool_timeout = timeout
 
         properties = {}
         required = []

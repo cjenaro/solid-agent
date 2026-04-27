@@ -8,7 +8,7 @@ module SolidAgent
     has_many :spans, class_name: 'SolidAgent::Span', dependent: :destroy
     has_many :messages, class_name: 'SolidAgent::Message', dependent: :destroy
 
-    STATUSES = %w[pending running completed failed paused].freeze
+    STATUSES = %w[pending running completed failed paused cancelled].freeze
 
     validates :status, inclusion: { in: STATUSES }
 

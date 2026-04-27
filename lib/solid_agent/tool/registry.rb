@@ -10,15 +10,15 @@ module SolidAgent
         when Class
           instance = tool_or_class.new
           schema = tool_or_class.to_schema
-          @tools[schema.name] = { instance: instance, schema: schema }
+          @tools[schema.name] = { instance: instance, schema: schema, timeout: tool_or_class.tool_timeout }
         when InlineTool
-          @tools[tool_or_class.schema.name] = { instance: tool_or_class, schema: tool_or_class.schema }
+          @tools[tool_or_class.schema.name] = { instance: tool_or_class, schema: tool_or_class.schema, timeout: tool_or_class.tool_timeout }
         else
           # Duck-typed tools: must respond to to_tool_schema (e.g., DelegateTool, AgentTool)
           if tool_or_class.respond_to?(:to_tool_schema)
             schema_hash = tool_or_class.to_tool_schema
             name = schema_hash[:name]
-            @tools[name] = { instance: tool_or_class, schema_hash: schema_hash }
+            @tools[name] = { instance: tool_or_class, schema_hash: schema_hash, timeout: nil }
           else
             raise Error, "Cannot register tool of type: #{tool_or_class.class}"
           end
@@ -30,6 +30,11 @@ module SolidAgent
         raise Error, "Tool not found: #{name}" unless entry
 
         entry[:instance]
+      end
+
+      def lookup_timeout(name)
+        entry = @tools[name.to_s]
+        entry&.dig(:timeout)
       end
 
       def registered?(name)

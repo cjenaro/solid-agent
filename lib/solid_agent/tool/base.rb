@@ -17,6 +17,14 @@ module SolidAgent
           @tool_description = desc
         end
 
+        def timeout(seconds)
+          @tool_timeout = seconds
+        end
+
+        def tool_timeout
+          @tool_timeout
+        end
+
         def parameter(param_name, type:, required: false, default: nil, description: nil)
           @tool_parameters ||= []
           @tool_parameters << {

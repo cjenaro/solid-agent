@@ -2,6 +2,12 @@ SolidAgent::Engine.routes.draw do
   root 'dashboard#index'
 
   resources :traces, only: %i[index show] do
+    member do
+      patch :update_status
+    end
+    collection do
+      patch :cancel_running
+    end
     resources :spans, only: %i[show], controller: 'spans'
   end
 

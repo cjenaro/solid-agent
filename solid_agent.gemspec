@@ -1,6 +1,6 @@
 Gem::Specification.new do |spec|
   spec.name = 'solid_agent'
-  spec.version = '0.3.1'
+  spec.version = '0.3.2'
   spec.authors = ['Solid Agent']
   spec.summary = 'A plug-and-play Rails engine for agentic capabilities using the Solid stack'
   spec.description = 'Zero-config agent framework backed by SQLite, Solid Queue, and Solid Cable'

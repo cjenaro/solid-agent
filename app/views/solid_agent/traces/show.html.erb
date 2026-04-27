@@ -5,7 +5,14 @@
     <dt>Agent</dt>
     <dd><%= @trace.agent_class %></dd>
     <dt>Status</dt>
-    <dd><span class="badge badge-<%= @trace.status %>"><%= @trace.status %></span></dd>
+    <dd>
+      <span class="badge badge-<%= @trace.status %>"><%= @trace.status %></span>
+      <% if %w[running pending].include?(@trace.status) %>
+        <%= button_to "Cancel", solid_agent.update_status_trace_path(@trace), params: { status: 'cancelled' }, method: :patch, class: "btn-cancel", form: { style: "display:inline-block; margin-left:0.5rem;" } %>
+      <% elsif @trace.status == 'paused' %>
+        <%= button_to "Resume", solid_agent.update_status_trace_path(@trace), params: { status: 'running' }, method: :patch, class: "btn-cancel", form: { style: "display:inline-block; margin-left:0.5rem;" } %>
+      <% end %>
+    </dd>
     <% if @trace.otel_trace_id.present? %>
       <dt>Trace ID</dt>
       <dd>
