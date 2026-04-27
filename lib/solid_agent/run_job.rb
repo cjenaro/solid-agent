@@ -72,6 +72,27 @@ module SolidAgent
         on_overflow = ->(messages) { agent_instance.send(agent_class.context_overflow_callback, messages) }
       end
 
+      # Resolve orchestration tools if agent includes the DSL
+      orchestration_tools = if agent_class.respond_to?(:orchestration_tools)
+                              # Merge delegates and agent_tools into a single hash keyed by name
+                              tools = {}
+                              if agent_class.respond_to?(:delegates)
+                                agent_class.delegates.each { |name, tool| tools[name] = tool }
+                              end
+                              if agent_class.respond_to?(:agent_tools)
+                                agent_class.agent_tools.each { |name, tool| tools[name] = tool }
+                              end
+                              tools
+                            else
+                              nil
+                            end
+
+      error_strategies = if agent_class.respond_to?(:delegate_error_strategies)
+                           agent_class.delegate_error_strategies
+                         else
+                           nil
+                         end
+
       react_loop = React::Loop.new(
         trace: trace,
         provider: provider,
@@ -85,7 +106,9 @@ module SolidAgent
         provider_name: agent_class.agent_provider,
         temperature: agent_class.agent_temperature,
         tool_choice: agent_class.agent_tool_choice,
-        on_context_overflow: on_overflow
+        on_context_overflow: on_overflow,
+        orchestration_tools: orchestration_tools,
+        error_strategies: error_strategies
       )
 
       conversation.messages.where(trace: trace).destroy_all if trace.messages.any?
