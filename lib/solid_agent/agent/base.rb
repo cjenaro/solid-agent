@@ -33,16 +33,16 @@ module SolidAgent
       trace
     end
 
-    def self.perform_now(input, conversation_id: nil)
-      conversation = if conversation_id
-                       SolidAgent::Conversation.find(conversation_id)
-                     else
-                       SolidAgent::Conversation.create!(agent_class: name)
-                     end
+    def self.perform_now(input, conversation_id: nil, trace: nil, conversation: nil)
+      conversation ||= if conversation_id
+                         SolidAgent::Conversation.find(conversation_id)
+                       else
+                         SolidAgent::Conversation.create!(agent_class: name)
+                       end
 
       trace_input = input.is_a?(Hash) ? input[:text] || input['text'] || input.to_json : input
 
-      trace = SolidAgent::Trace.create!(
+      trace ||= SolidAgent::Trace.create!(
         conversation: conversation,
         agent_class: name,
         trace_type: :agent_run,
@@ -57,7 +57,7 @@ module SolidAgent
         conversation_id: conversation.id
       )
     rescue StandardError => e
-      trace.update!(status: 'failed', error: e.message, completed_at: Time.current) if trace&.status != 'failed'
+      trace&.update!(status: 'failed', error: e.message, completed_at: Time.current) if trace&.status != 'failed'
       Agent::Result.new(
         trace_id: trace&.id,
         conversation_id: trace&.conversation_id,

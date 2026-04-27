@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.2] - 2026-04-27
+
+### Fixed
+- `Base.perform_now` accepts optional `trace:` and `conversation:` kwargs so `DelegateTool` can pass pre-created child traces
+- `RunJob` passes `orchestration_tools` and `error_strategies` to `React::Loop` when agent includes `Orchestration::DSL`
+
 ## [0.2.1] - 2026-04-27
 
 ### Fixed
