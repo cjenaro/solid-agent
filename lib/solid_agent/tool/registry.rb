@@ -14,7 +14,14 @@ module SolidAgent
         when InlineTool
           @tools[tool_or_class.schema.name] = { instance: tool_or_class, schema: tool_or_class.schema }
         else
-          raise Error, "Cannot register tool of type: #{tool_or_class.class}"
+          # Duck-typed tools: must respond to to_tool_schema (e.g., DelegateTool, AgentTool)
+          if tool_or_class.respond_to?(:to_tool_schema)
+            schema_hash = tool_or_class.to_tool_schema
+            name = schema_hash[:name]
+            @tools[name] = { instance: tool_or_class, schema_hash: schema_hash }
+          else
+            raise Error, "Cannot register tool of type: #{tool_or_class.class}"
+          end
         end
       end
 
@@ -30,11 +37,17 @@ module SolidAgent
       end
 
       def all_schemas
-        @tools.values.map { |e| e[:schema] }
+        @tools.values.map { |e| e[:schema] }.compact
       end
 
       def all_schemas_hashes
-        all_schemas.map(&:to_hash)
+        @tools.values.map do |e|
+          if e[:schema]
+            e[:schema].to_hash
+          elsif e[:schema_hash]
+            e[:schema_hash]
+          end
+        end.compact
       end
 
       def tool_count

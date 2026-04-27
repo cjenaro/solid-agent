@@ -63,7 +63,7 @@ module SolidAgent
     def execute_run(trace:, agent_class:, agent_instance:, input:, conversation_id:)
       provider = resolve_provider(agent_class)
       memory = resolve_memory(agent_class)
-      execution_engine = resolve_execution_engine(agent_class)
+      execution_engine = resolve_execution_engine(agent_class, trace: trace, conversation_id: conversation_id)
 
       conversation = SolidAgent::Conversation.find(conversation_id)
 
@@ -71,27 +71,6 @@ module SolidAgent
       if agent_class.context_overflow_callback
         on_overflow = ->(messages) { agent_instance.send(agent_class.context_overflow_callback, messages) }
       end
-
-      # Resolve orchestration tools if agent includes the DSL
-      orchestration_tools = if agent_class.respond_to?(:orchestration_tools)
-                              # Merge delegates and agent_tools into a single hash keyed by name
-                              tools = {}
-                              if agent_class.respond_to?(:delegates)
-                                agent_class.delegates.each { |name, tool| tools[name] = tool }
-                              end
-                              if agent_class.respond_to?(:agent_tools)
-                                agent_class.agent_tools.each { |name, tool| tools[name] = tool }
-                              end
-                              tools
-                            else
-                              nil
-                            end
-
-      error_strategies = if agent_class.respond_to?(:delegate_error_strategies)
-                           agent_class.delegate_error_strategies
-                         else
-                           nil
-                         end
 
       react_loop = React::Loop.new(
         trace: trace,
@@ -106,9 +85,7 @@ module SolidAgent
         provider_name: agent_class.agent_provider,
         temperature: agent_class.agent_temperature,
         tool_choice: agent_class.agent_tool_choice,
-        on_context_overflow: on_overflow,
-        orchestration_tools: orchestration_tools,
-        error_strategies: error_strategies
+        on_context_overflow: on_overflow
       )
 
       conversation.messages.where(trace: trace).destroy_all if trace.messages.any?
@@ -156,11 +133,26 @@ module SolidAgent
       "SolidAgent::Memory::#{memory_class_name}".constantize.new(**config.except(:strategy).transform_keys(&:to_sym))
     end
 
-    def resolve_execution_engine(agent_class)
+    def resolve_execution_engine(agent_class, trace:, conversation_id:)
+      registry = agent_class.agent_tool_registry
+
+      # Register orchestration tools (delegates/agent_tools) in the same registry
+      if agent_class.respond_to?(:orchestration_tools)
+        agent_class.orchestration_tools.each do |_name, tool|
+          registry.register(tool) unless registry.registered?(tool.name)
+        end
+      end
+
+      context = {
+        trace: trace,
+        conversation: SolidAgent::Conversation.find(conversation_id)
+      }
+
       Tool::ExecutionEngine.new(
-        registry: agent_class.agent_tool_registry,
+        registry: registry,
         concurrency: agent_class.agent_concurrency,
-        approval_required: agent_class.agent_approval_required
+        approval_required: agent_class.agent_approval_required,
+        context: context
       )
     end
   end

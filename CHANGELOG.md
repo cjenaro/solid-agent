@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2026-04-27
+
+### Changed
+- **Unified tool system** — `delegate` and `agent_tool` orchestration tools are now registered in the same `Tool::Registry` as regular tools. No more separate execution paths in the React loop.
+- `ExecutionEngine` accepts `context:` kwarg (trace + conversation) and passes it through to tools that accept it (DelegateTool/AgentTool).
+- `ExecutionEngine#execute_all` now uses threads with ActiveRecord connection pool checkout for all tools when concurrency > 1.
+- `React::Loop` reverted to clean single-path: all tool calls go through `execute_all`, concurrency applies uniformly.
+- `RunJob` registers orchestration tools in the agent's tool registry before building the execution engine.
+- `Tool::Registry#register` accepts duck-typed tools (anything responding to `to_tool_schema`).
+
+### Removed
+- `orchestration_tools`, `error_strategies` params from `React::Loop` constructor.
+- Orchestration-specific branching code from the React loop (split/merge orchestration vs regular, `execute_orchestration_call` helper).
+
+## [0.2.4] - 2026-04-27
+
+### Added
+- Parallel execution of orchestration tool calls (delegates/agent_tools), batched by the agent's `concurrency` setting with ActiveRecord connection pool checkout per thread
+- `ExecutionEngine` exposes `concurrency` via `attr_reader`
+
 ## [0.2.3] - 2026-04-27
 
 ### Fixed

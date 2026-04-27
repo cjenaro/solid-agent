@@ -29,14 +29,15 @@ module SolidAgent
         end
       end
 
-      attr_reader :registry
+      attr_reader :registry, :concurrency
 
-      def initialize(registry:, concurrency: 1, timeout: 30, approval_required: [])
+      def initialize(registry:, concurrency: 1, timeout: 30, approval_required: [], context: {})
         @registry = registry
         @concurrency = concurrency
         @timeout = timeout
         @approval_required = approval_required.map(&:to_s)
         @approved = Set.new
+        @context = context
       end
 
       def approve(tool_call_id)
@@ -54,10 +55,21 @@ module SolidAgent
         tool_calls.each_slice(@concurrency) do |batch|
           threads = batch.map do |tc|
             Thread.new(tc) do |tool_call|
-              results[tool_call.id] = execute_one(tool_call)
+              if defined?(ActiveRecord::Base)
+                ActiveRecord::Base.connection_pool.with_connection do
+                  results[tool_call.id] = execute_one(tool_call)
+                end
+              else
+                results[tool_call.id] = execute_one(tool_call)
+              end
             end
           end
-          threads.each(&:join)
+          threads.each do |thread|
+            thread.value
+          rescue StandardError
+            # Thread errors are captured in results; raise only if thread itself fails outside
+            raise
+          end
         end
 
         results
@@ -78,7 +90,12 @@ module SolidAgent
 
         tool = @registry.lookup(tool_call.name)
         Timeout.timeout(@timeout) do
-          tool.execute(tool_call.arguments)
+          # DelegateTool/AgentTool accept context:, regular tools just take arguments
+          if tool.respond_to?(:delegate?) || tool.method(:execute).arity.abs == 2
+            tool.execute(tool_call.arguments, context: @context)
+          else
+            tool.execute(tool_call.arguments)
+          end
         end
       rescue Timeout::Error
         ToolExecutionError.new("Tool '#{tool_call.name}' timed out after #{@timeout}s")
