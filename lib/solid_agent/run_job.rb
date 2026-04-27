@@ -134,11 +134,12 @@ module SolidAgent
     end
 
     def resolve_execution_engine(agent_class, trace:, conversation_id:)
-      registry = agent_class.agent_tool_registry
+      # Dup the registry so orchestration tools don't persist across runs
+      registry = agent_class.agent_tool_registry.dup
 
       # Register orchestration tools (delegates/agent_tools) in the same registry
       if agent_class.respond_to?(:orchestration_tools)
-        agent_class.orchestration_tools.each do |_name, tool|
+        agent_class.orchestration_tools.each do |tool|
           registry.register(tool) unless registry.registered?(tool.name)
         end
       end
