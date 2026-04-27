@@ -34,9 +34,8 @@ module SolidAgent
         trace = context[:trace]
         conversation = context[:conversation]
         input_text = arguments['input'] || arguments[:input]
-        result = @agent_class.perform_now(input_text, conversation: conversation)
-        output_text = result.is_a?(SolidAgent::Agent::Result) ? result.output.to_s : result.to_s
-        return output_text unless trace
+
+        return run_without_span(input_text, conversation) unless trace
 
         span = nil
 
@@ -80,6 +79,13 @@ module SolidAgent
           end
           raise
         end
+      end
+
+      private
+
+      def run_without_span(input_text, conversation)
+        result = @agent_class.perform_now(input_text, conversation: conversation)
+        result.is_a?(SolidAgent::Agent::Result) ? result.output.to_s : result.to_s
       end
     end
   end

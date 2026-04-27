@@ -89,7 +89,16 @@ module SolidAgent
         end
 
         tool = @registry.lookup(tool_call.name)
-        Timeout.timeout(@timeout) do
+
+        # Subagent tools (DelegateTool/AgentTool) manage their own timeout
+        # via the child agent's React loop — don't cut them short.
+        effective_timeout = if tool.respond_to?(:agent_class)
+                              0 # disable Timeout.timeout for subagent tools
+                            else
+                              @timeout
+                            end
+
+        Timeout.timeout(effective_timeout) do
           # DelegateTool/AgentTool accept context:, regular tools just take arguments
           if tool.respond_to?(:delegate?) || tool.method(:execute).arity.abs == 2
             tool.execute(tool_call.arguments, context: @context)
