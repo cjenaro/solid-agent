@@ -16,7 +16,8 @@ module SolidAgent
     class Loop
       def initialize(trace:, provider:, memory:, execution_engine:, model:, system_prompt:, max_iterations:,
                      max_tokens_per_run:, timeout:, http_adapter: nil, provider_name: nil,
-                     temperature: nil, tool_choice: nil, on_chunk: nil, on_context_overflow: nil)
+                     temperature: nil, tool_choice: nil, on_chunk: nil, on_context_overflow: nil,
+                     orchestration_tools: nil, error_strategies: nil)
         @trace = trace
         @provider = provider
         @memory = memory
@@ -32,6 +33,8 @@ module SolidAgent
         @tool_choice = tool_choice
         @on_chunk = on_chunk
         @on_context_overflow = on_context_overflow
+        @orchestration_tools = orchestration_tools || {}
+        @error_strategies = error_strategies || {}
         @started_at = Time.current
         @accumulated_usage = Types::Usage.new(input_tokens: 0, output_tokens: 0)
       end
@@ -76,9 +79,13 @@ module SolidAgent
           )
           broadcast_span(llm_span)
 
+          # Merge regular tool schemas with orchestration tool schemas
+          all_tool_schemas = @execution_engine.registry.all_schemas_hashes +
+                            @orchestration_tools.values.map(&:to_tool_schema)
+
           request = @provider.build_request(
             messages: context,
-            tools: @execution_engine.registry.all_schemas_hashes,
+            tools: all_tool_schemas,
             stream: false,
             model: @model,
             max_tokens: @model.max_output,
@@ -133,26 +140,70 @@ module SolidAgent
             )
           end
 
-          tool_results = @execution_engine.execute_all(response.tool_calls)
+          # Split tool calls into regular vs orchestration
+          regular_calls = []
+          orchestration_calls = []
+
+          response.tool_calls.each do |tc|
+            if @orchestration_tools.key?(tc.name)
+              orchestration_calls << tc
+            else
+              regular_calls << tc
+            end
+          end
+
+          # Execute regular tools
+          regular_results = regular_calls.any? ? @execution_engine.execute_all(regular_calls) : {}
+
+          # Execute orchestration tools (sequentially, with error strategies)
+          orchestration_results = {}
+          orchestration_calls.each do |tc|
+            tool = @orchestration_tools[tc.name]
+            strategy = @error_strategies[tc.name]
+            context_hash = { trace: @trace, conversation: @trace.conversation }
+
+            result_text = begin
+              if strategy
+                strategy.execute_with_handling do
+                  tool.execute(tc.arguments, context: context_hash)
+                end
+              else
+                tool.execute(tc.arguments, context: context_hash)
+              end
+            rescue StandardError => e
+              "Error: #{e.message}"
+            end
+
+            orchestration_results[tc.id] = result_text
+          end
+
+          # Merge results (regular + orchestration) preserving tool_call_id mapping
+          tool_results = regular_results.merge(orchestration_results)
 
           # Collect all tool result messages first, then image follow-ups
           # OpenAI requires all tool results to be contiguous after the assistant message
           pending_image_messages = []
 
           tool_results.each do |call_id, result|
-            is_image = result.is_a?(Tool::ImageResult)
-            is_error = result.is_a?(Tool::ExecutionEngine::ToolExecutionError)
-
-            result_text = if is_error
-              "Error: #{result.message}"
-            elsif is_image
+            result_text = case result
+            when Tool::ImageResult
               result.text
+            when Tool::ExecutionEngine::ToolExecutionError
+              "Error: #{result.message}"
+            when String
+              result
             else
               result.to_s
             end
 
+            is_image = result.is_a?(Tool::ImageResult)
+            is_error = result.is_a?(Tool::ExecutionEngine::ToolExecutionError)
+            is_orchestration = orchestration_results.key?(call_id)
+
             @on_chunk&.call(result_text)
             tool_call = response.tool_calls.find { |tc| tc.id == call_id }
+
+            tool_type = is_orchestration ? 'agent' : 'function'
 
             @trace.spans.create!(
               span_type: 'tool', name: tool_call&.name || 'tool',
@@ -162,7 +213,7 @@ module SolidAgent
               output: result_text,
               metadata: Telemetry::Serializer.span_attributes(SpanData.new(span_type: 'tool', name: tool_call&.name || 'tool'),
                                                               tool_name: tool_call&.name, tool_call_id: call_id,
-                                                              tool_type: 'function')
+                                                              tool_type: tool_type)
             )
 
             @trace.spans.create!(
