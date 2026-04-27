@@ -135,6 +135,10 @@ module SolidAgent
 
           tool_results = @execution_engine.execute_all(response.tool_calls)
 
+          # Collect all tool result messages first, then image follow-ups
+          # OpenAI requires all tool results to be contiguous after the assistant message
+          pending_image_messages = []
+
           tool_results.each do |call_id, result|
             is_image = result.is_a?(Tool::ImageResult)
             is_error = result.is_a?(Tool::ExecutionEngine::ToolExecutionError)
@@ -172,15 +176,19 @@ module SolidAgent
 
             all_messages << Types::Message.new(role: 'tool', content: result_text, tool_call_id: call_id)
 
-            # If the tool returned an image, inject it as a user message
-            # (OpenAI only supports images in user messages, not tool messages)
+            # Queue image messages to be added after ALL tool results
             if is_image
-              all_messages << Types::Message.new(
+              pending_image_messages << Types::Message.new(
                 role: 'user',
-                content: result_text,
+                content: "[Image from #{tool_call&.name} tool] #{result_text}",
                 image_data: result.image_data
               )
             end
+          end
+
+          # Now add any image messages after all tool results are contiguous
+          pending_image_messages.each do |img_msg|
+            all_messages << img_msg
           end
         end
       rescue StandardError => e
