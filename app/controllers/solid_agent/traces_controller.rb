@@ -28,12 +28,6 @@ module SolidAgent
 
     def cancel_running
       count = Trace.where(status: %w[running pending]).update_all(status: 'cancelled', completed_at: Time.current)
-      # Also fail any match reports stuck in generating (their jobs are effectively dead)
-      if defined?(::MatchReport)
-        ::MatchReport.where(status: :generating).find_each do |report|
-          report.update!(status: :failed, error_log: "Parent agent traces were cancelled from dashboard")
-        end
-      end
       redirect_to solid_agent.traces_path, notice: "Cancelled #{count} trace(s)"
     end
   end
