@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.2.0] - Unreleased
+## [0.2.0] - 2026-04-27
 
 ### Added
 - Streaming support for LLM token delivery via `on_chunk` callback
@@ -15,10 +15,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `tool_choice` DSL for controlling model tool usage (`auto`, `required`, `none`, or specific tool)
 - OpenAI embedder for vector similarity search
 - Multimodal message support — images via URL or base64 (end-to-end: DB, entry points, provider serialization)
+- `Tool::ImageResult` — tools can return images alongside text. The React loop injects images as user messages after all tool results, keeping the message sequence valid across all providers (OpenAI, Anthropic, Google, Ollama)
 - SSE MCP transport for remote MCP servers
 - Real-time dashboard updates via ActionCable
 - MIT LICENSE file
 - CHANGELOG
+
+### Fixed
+- Added missing `has_many :messages` association to `Trace` model (was called in `RunJob` but never declared)
+- Image tool results are now queued and appended after all tool result messages, preventing OpenAI's "tool_call_ids did not have response messages" error when multiple tools are called in parallel
 
 ## [0.1.0] - 2025-01-01
 
