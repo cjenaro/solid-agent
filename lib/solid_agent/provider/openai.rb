@@ -14,13 +14,49 @@ module SolidAgent
       end
 
       def build_request(messages:, tools:, stream:, model:, max_tokens: nil, temperature: nil, tool_choice: nil, options: {})
+        model_id = model.to_s
+
+        serialized = messages.map { |m| serialize_message(m) }
+
+        # Set image detail based on base64 image size for token efficiency
+        serialized.each do |msg|
+          content = msg[:content]
+          next unless content.is_a?(Array)
+
+          content.each do |part|
+            next unless part[:type] == "image_url" && part[:image_url]
+            url = part[:image_url][:url] || ""
+            if url.start_with?("data:")
+              base64_data = url.split(",", 2).last.to_s
+              # Small images (<120KB base64 ≈ 90KB raw) get "low" detail
+              part[:image_url][:detail] = base64_data.length < 120_000 ? "low" : "auto"
+            end
+          end
+        end
+
         body = {
-          model: model.to_s,
-          messages: messages.map { |m| serialize_message(m) },
+          model: model_id,
+          messages: serialized,
           stream: stream
         }
-        body[:max_tokens] = max_tokens if max_tokens
-        body[:temperature] = temperature if temperature
+
+        # GPT-5.x and o3 models require max_completion_tokens instead of max_tokens
+        if max_tokens
+          if model_id.match?(/\A(gpt-5|o[34])/)
+            body[:max_completion_tokens] = max_tokens
+          else
+            body[:max_tokens] = max_tokens
+          end
+        end
+
+        # GPT-5.x and o3/o4 models only support temperature=1
+        if temperature
+          if model_id.match?(/\A(gpt-5|o[34])/)
+            body[:temperature] = 1
+          else
+            body[:temperature] = temperature
+          end
+        end
         body[:tool_choice] = tool_choice.to_s if tool_choice
         body[:tools] = tools.map { |t| translate_tool(t) } unless tools.empty?
         body.merge!(options)

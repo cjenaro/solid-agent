@@ -1,18 +1,81 @@
-<h1>Trace #<%= @trace.id %></h1>
+<h1>Trace #<%= @trace.id %> <span class="badge badge-<%= @trace.status %>"><%= @trace.status %></span></h1>
 
+<%# ── Summary Cards ── %>
+<div class="stat-cards" style="margin-bottom:1.5rem;">
+  <div class="stat-card">
+    <div class="label">Duration</div>
+    <div class="value"><%= @trace.duration ? format_duration(@trace.duration) : '—' %></div>
+  </div>
+  <div class="stat-card">
+    <div class="label">Iterations</div>
+    <div class="value"><%= @trace.total_iterations %></div>
+  </div>
+  <div class="stat-card">
+    <div class="label">Tokens (in / out)</div>
+    <div class="value"><%= number_with_delimiter(@trace.total_tokens) %></div>
+    <div class="sub" style="font-size:0.75rem;color:#64748b;margin-top:0.125rem;"><%= number_with_delimiter(@trace.usage['input_tokens'] || 0) %> / <%= number_with_delimiter(@trace.usage['output_tokens'] || 0) %></div>
+  </div>
+  <div class="stat-card">
+    <div class="label">Cost</div>
+    <div class="value"><%= format_cost(@trace.total_cost) %></div>
+    <% if @trace.model_name.present? %>
+      <div class="sub" style="font-size:0.75rem;color:#64748b;margin-top:0.125rem;"><%= @trace.model_name %></div>
+    <% end %>
+  </div>
+</div>
+
+<%# ── Tool Summary ── %>
+<% tool_summary = @trace.tool_summary %>
+<% if tool_summary.any? %>
+<div class="detail" style="margin-bottom:1.5rem;">
+  <h2 style="margin-bottom:0.5rem;">Tool Calls</h2>
+  <div style="display:flex;flex-wrap:wrap;gap:0.5rem;">
+    <% tool_summary.sort_by { |_, v| -v }.each do |name, count| %>
+      <span class="tool-pill">
+        <span class="tool-pill-icon">&#x1F527;</span>
+        <%= name %> <span class="tool-pill-count"><%= count %></span>
+      </span>
+    <% end %>
+  </div>
+</div>
+<% end %>
+
+<%# ── Child Traces Summary ── %>
+<% if @trace.child_traces.any? %>
+<div class="detail" style="margin-bottom:1.5rem;">
+  <h2 style="margin-bottom:0.5rem;">Delegated Runs (<%= @trace.child_traces.count %>)</h2>
+  <table style="box-shadow:none;border:1px solid #e2e8f0;border-radius:0.375rem;overflow:hidden;">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Agent</th>
+        <th>Status</th>
+        <th>Duration</th>
+        <th>Tokens</th>
+        <th>Cost</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% @trace.child_traces.each do |ct| %>
+        <tr>
+          <td><%= link_to ct.id, solid_agent.trace_path(ct) %></td>
+          <td><%= ct.agent_class %></td>
+          <td><span class="badge badge-<%= ct.status %>"><%= ct.status %></span></td>
+          <td><%= ct.duration ? format_duration(ct.duration) : '—' %></td>
+          <td><%= number_with_delimiter(ct.total_tokens) %></td>
+          <td><%= format_cost(ct.total_cost) %></td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+</div>
+<% end %>
+
+<%# ── Details ── %>
 <div class="detail">
   <dl>
     <dt>Agent</dt>
     <dd><%= @trace.agent_class %></dd>
-    <dt>Status</dt>
-    <dd>
-      <span class="badge badge-<%= @trace.status %>"><%= @trace.status %></span>
-      <% if %w[running pending].include?(@trace.status) %>
-        <%= button_to "Cancel", solid_agent.update_status_trace_path(@trace), params: { status: 'cancelled' }, method: :patch, class: "btn-cancel", form: { style: "display:inline-block; margin-left:0.5rem;" } %>
-      <% elsif @trace.status == 'paused' %>
-        <%= button_to "Resume", solid_agent.update_status_trace_path(@trace), params: { status: 'running' }, method: :patch, class: "btn-cancel", form: { style: "display:inline-block; margin-left:0.5rem;" } %>
-      <% end %>
-    </dd>
     <% if @trace.otel_trace_id.present? %>
       <dt>Trace ID</dt>
       <dd>
@@ -39,10 +102,6 @@
       <dt>Error</dt>
       <dd style="color: #991b1b"><%= @trace.error %></dd>
     <% end %>
-    <dt>Tokens</dt>
-    <dd><%= @trace.total_tokens %> (<%= @trace.usage['input_tokens'] || 0 %> in / <%= @trace.usage['output_tokens'] || 0 %> out)</dd>
-    <dt>Iterations</dt>
-    <dd><%= @trace.iteration_count %></dd>
     <% if @trace.started_at %>
       <dt>Started</dt>
       <dd><%= @trace.started_at.strftime("%Y-%m-%d %H:%M:%S") %></dd>
@@ -53,6 +112,13 @@
     <% end %>
     <dt>Conversation</dt>
     <dd><%= link_to "##{@trace.conversation_id}", solid_agent.conversation_path(@trace.conversation) %></dd>
+    <% if %w[running pending].include?(@trace.status) %>
+      <dt>Actions</dt>
+      <dd><%= button_to "Cancel", solid_agent.update_status_trace_path(@trace), params: { status: 'cancelled' }, method: :patch, class: "btn-cancel", form: { style: "display:inline-block;" } %></dd>
+    <% elsif @trace.status == 'paused' %>
+      <dt>Actions</dt>
+      <dd><%= button_to "Resume", solid_agent.update_status_trace_path(@trace), params: { status: 'running' }, method: :patch, class: "btn-cancel", form: { style: "display:inline-block;" } %></dd>
+    <% end %>
   </dl>
 </div>
 

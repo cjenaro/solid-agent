@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - 2026-04-28
+
+### Added
+- **GPT-5.4 Nano and Mini models** — `SolidAgent::Models::OpenAi::GPT_5_4_NANO` and `GPT_5_4_MINI` with current pricing ($0.20/$1.25 and $0.75/$4.50 per 1M tokens). `Models::OpenAi.find(model_id)` for lookup by string.
+- **Automatic `max_completion_tokens`** — the OpenAI provider now uses `max_completion_tokens` for GPT-5.x and o3/o4 models (required by the API) and `max_tokens` for older models. No more need for custom provider subclasses.
+- **Automatic image detail** — inline base64 images get `detail: "low"` or `"auto"` based on size, reducing token consumption without a custom provider.
+- **Cost tracking** — `Trace#cost` (own), `Trace#total_cost` (recursive with children), `Trace#model_name`, `Trace#tool_summary`, `Trace#total_iterations`. Cost is computed from stored usage + model pricing.
+- **Trace show page redesign** — summary cards (duration, iterations, tokens, cost), tool call pills, delegated runs table with per-child cost.
+- **Cost column** added to traces index and dashboard.
+
+### Changed
+- OpenAI provider `build_request` now handles `max_completion_tokens` / `max_tokens` dispatch internally based on model family.
+
 ## [0.3.3] - 2026-04-27
 
 ### Fixed

@@ -15,6 +15,7 @@
       <th>Agent</th>
       <th>Status</th>
       <th>Tokens</th>
+      <th>Cost</th>
       <th>Iterations</th>
       <th>Created</th>
     </tr>
@@ -25,7 +26,8 @@
         <td><%= link_to trace.id, solid_agent.trace_path(trace) %></td>
         <td><%= trace.agent_class %></td>
         <td><span class="badge badge-<%= trace.status %>"><%= trace.status %></span></td>
-        <td><%= trace.total_tokens %></td>
+        <td><%= number_with_delimiter(trace.total_tokens) %></td>
+        <td><%= format_cost(trace.total_cost) %></td>
         <td><%= trace.iteration_count %></td>
         <td><%= trace.created_at.strftime("%Y-%m-%d %H:%M") %></td>
       </tr>

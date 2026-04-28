@@ -1,5 +1,30 @@
 module SolidAgent
   module ApplicationHelper
+    def format_cost(amount)
+      case amount
+      when 0.0
+        '$0.00'
+      when 0.01...0.10
+        "$#{('%.4f' % amount).sub(/0+$/, '').sub(/\.$/, '')}"
+      else
+        "$#{'%.2f' % amount}"
+      end
+    end
+
+    def format_duration(seconds)
+      if seconds < 60
+        "#{seconds.round(1)}s"
+      elsif seconds < 3600
+        minutes = (seconds / 60).to_i
+        secs = (seconds % 60).round(0)
+        "#{minutes}m #{secs}s"
+      else
+        hours = (seconds / 3600).to_i
+        minutes = ((seconds % 3600) / 60).to_i
+        "#{hours}h #{minutes}m"
+      end
+    end
+
     def render_span_tree(span, depth)
       children = span.child_spans.sort_by(&:created_at)
       has_children = children.any? || span.output.present?

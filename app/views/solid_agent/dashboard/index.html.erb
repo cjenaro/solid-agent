@@ -17,6 +17,10 @@
     <div class="label">Total Tokens</div>
     <div class="value"><%= number_with_delimiter(@stats[:total_tokens]) %></div>
   </div>
+  <div class="stat-card">
+    <div class="label">Total Cost</div>
+    <div class="value"><%= format_cost(@stats[:total_cost]) %></div>
+  </div>
 </div>
 
 <h2>Recent Traces</h2>
@@ -28,6 +32,7 @@
         <th>Agent</th>
         <th>Status</th>
         <th>Tokens</th>
+        <th>Cost</th>
         <th>Iterations</th>
         <th>Started</th>
       </tr>
@@ -38,7 +43,8 @@
           <td><%= link_to trace.id, solid_agent.trace_path(trace) %></td>
           <td><%= trace.agent_class %></td>
           <td><span class="badge badge-<%= trace.status %>"><%= trace.status %></span></td>
-          <td><%= trace.total_tokens %></td>
+          <td><%= number_with_delimiter(trace.total_tokens) %></td>
+          <td><%= format_cost(trace.total_cost) %></td>
           <td><%= trace.iteration_count %></td>
           <td><%= time_ago_in_words(trace.created_at) %> ago</td>
         </tr>
