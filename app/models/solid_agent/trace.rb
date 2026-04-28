@@ -72,13 +72,21 @@ module SolidAgent
     end
 
     def tool_summary
-      spans = self_and_descendant_spans
-      tool_spans = spans.select { |s| s.span_type == 'tool' }
+      all_spans = self_and_descendant_spans
+      tool_spans = all_spans.select { |s| s.span_type == 'tool' }
       tool_spans.group_by(&:name).transform_values(&:count)
     end
 
     def model_name
       resolve_model&.id || extract_model_from_spans
+    end
+
+    def self_and_descendant_spans
+      all_spans = spans.to_a
+      child_traces.each do |ct|
+        all_spans.concat(ct.self_and_descendant_spans)
+      end
+      all_spans
     end
 
     private
@@ -93,14 +101,6 @@ module SolidAgent
                         .where("metadata LIKE '%gen_ai.request.model%'")
                         .order(:created_at).first
       llm_span&.metadata&.dig('gen_ai.request.model')
-    end
-
-    def self_and_descendant_spans
-      all_spans = spans.to_a
-      child_traces.each do |ct|
-        all_spans.concat(ct.self_and_descendant_spans)
-      end
-      all_spans
     end
 
     def generate_otel_ids
